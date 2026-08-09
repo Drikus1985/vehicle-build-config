@@ -1,0 +1,126 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-graphite-950: #101114;
+  --color-graphite-900: #16181d;
+  --color-graphite-850: #1b1e24;
+  --color-graphite-800: #22252c;
+  --color-graphite-700: #2e323b;
+  --color-graphite-600: #3d424d;
+  --color-graphite-400: #8b919c;
+  --color-graphite-300: #b3b8c2;
+  --color-ivory-100: #f4f2ec;
+  --color-ivory-200: #e7e4db;
+  --color-ivory-400: #c9c5b8;
+  --color-accent-400: #f7b955;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+  --color-ok-500: #4ade80;
+  --color-warn-500: #f0b429;
+  --color-danger-500: #ef5350;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  @apply bg-graphite-950 text-ivory-200 antialiased;
+  font-feature-settings: 'ss01', 'cv02';
+}
+
+/* Focus visibility for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-graphite-600);
+  border-radius: 6px;
+  border: 2px solid var(--color-graphite-900);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@utility panel {
+  @apply bg-graphite-900 border border-graphite-700/60 rounded-lg;
+}
+
+@utility field-label {
+  @apply block text-[11px] font-medium uppercase tracking-wider text-graphite-400 mb-1;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-graphite-600/70 bg-graphite-800 px-2.5 py-1.5 text-xs font-medium text-ivory-200 transition-colors select-none;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--color-graphite-700);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@utility btn-accent {
+  @apply btn border-accent-600 bg-accent-500 text-graphite-950;
+}
+.btn-accent:hover:not(:disabled) {
+  background: var(--color-accent-400);
+}
+
+@utility btn-ghost {
+  @apply btn border-transparent bg-transparent;
+}
+
+@utility btn-on {
+  border-color: var(--color-accent-500);
+  color: var(--color-accent-400);
+  background: color-mix(in srgb, var(--color-accent-500) 12%, transparent);
+}
+
+@utility input-base {
+  @apply w-full rounded-md border border-graphite-600/70 bg-graphite-850 px-2 py-1.5 text-xs text-ivory-100 placeholder-graphite-400;
+}
+
+@utility range-base {
+  @apply w-full accent-[#f59e0b];
+}
+
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded border border-graphite-600/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide;
+}
+
+.annotation-marker {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--color-accent-500);
+  color: var(--color-graphite-950);
+  border: 2px solid var(--color-graphite-950);
+  font: 700 11px/18px var(--font-sans);
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

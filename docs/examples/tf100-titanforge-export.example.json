@@ -1,0 +1,74 @@
+{
+  "format": "titanforge/manifest",
+  "formatVersion": 1,
+  "exportedAt": "2026-08-09T18:00:00.000Z",
+  "units": "mm",
+  "vehicle": {
+    "id": "veh-tf100-1952",
+    "year": 1952,
+    "make": "Titanforge",
+    "model": "TF-100 Stepside",
+    "trim": "Demo"
+  },
+  "build": {
+    "id": "build-6f0a2c9e-demo",
+    "name": "Patina shop truck",
+    "version": 1,
+    "updatedAt": "2026-08-09T17:55:41.312Z"
+  },
+  "sourceAsset": {
+    "uri": "/assets/vehicles/tf100-stepside.glb",
+    "licence": "CC0-1.0",
+    "attributionText": "Demo vehicle generated for vehicle-build-config; public domain (CC0).",
+    "note": "Dimensions derive from display geometry and are NOT manufacturing-validated. Validate against a calibrated scan or engineering model before production."
+  },
+  "manufacturingValidated": false,
+  "items": [
+    {
+      "componentId": "part-grille",
+      "partName": "Grille",
+      "category": "grille",
+      "meshNodeIds": ["grille_bars", "grille_mesh"],
+      "status": "needs-3d-scan",
+      "priority": "high",
+      "assignee": "D. van der Merwe",
+      "process": "none",
+      "proposedMaterial": "",
+      "dimensionsMm": null,
+      "toleranceMm": null,
+      "scanRequired": true,
+      "printOrientationNotes": "",
+      "quantity": 1,
+      "estimatedCostUsd": null,
+      "supplier": "",
+      "attachments": [],
+      "notes": "Original grille pitted beyond re-chroming; scan before deciding reproduce vs CNC.",
+      "manufacturingValidated": false,
+      "createdAt": "2026-08-09T17:40:02.101Z",
+      "updatedAt": "2026-08-09T17:52:10.884Z"
+    },
+    {
+      "componentId": "part-mirror",
+      "partName": "Door mirror (left)",
+      "category": "mirror",
+      "meshNodeIds": ["mirror_left"],
+      "status": "print-candidate",
+      "priority": "medium",
+      "assignee": "",
+      "process": "sla-print",
+      "proposedMaterial": "SLA resin, chrome-plated after",
+      "dimensionsMm": { "x": 30, "y": 140, "z": 100 },
+      "toleranceMm": 0.2,
+      "scanRequired": false,
+      "printOrientationNotes": "Mirror face up, 30 deg tilt, supports on stem only.",
+      "quantity": 2,
+      "estimatedCostUsd": 85,
+      "supplier": "Local print bureau",
+      "attachments": [{ "name": "reference-photo-left-mirror.jpg", "note": "swap-meet find" }],
+      "notes": "Dimensions measured by hand from a donor part — still to be confirmed with a calibrated scan.",
+      "manufacturingValidated": false,
+      "createdAt": "2026-08-09T17:44:31.660Z",
+      "updatedAt": "2026-08-09T17:53:02.418Z"
+    }
+  ]
+}
