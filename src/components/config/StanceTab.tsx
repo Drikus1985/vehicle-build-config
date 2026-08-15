@@ -1,9 +1,10 @@
-import { getManifestForVehicle, getVehicle } from '@/lib/catalog';
+import { getManifestForVehicle, getVehicle, hasActiveOemWheelset } from '@/lib/catalog';
 import { STANCE_PRESETS } from '@/lib/build/defaults';
 import { checkAxleFitment } from '@/lib/fitment/tyres';
 import { applyStancePreset, setStance } from '@/state/buildActions';
 import { useBuildStore } from '@/state/buildStore';
 import { useUiStore } from '@/state/uiStore';
+import { OemWheelsetNotice } from './WheelsTab';
 
 function StanceSlider({
   label,
@@ -49,6 +50,13 @@ export function StanceTab() {
   const build = useBuildStore((s) => s.build);
   const toast = useUiStore((s) => s.toast);
   if (!build) return null;
+  if (hasActiveOemWheelset(build)) {
+    return (
+      <div className="flex flex-col gap-3">
+        <OemWheelsetNotice context="stance" />
+      </div>
+    );
+  }
   const vehicle = getVehicle(build.vehicleId);
   const manifest = getManifestForVehicle(build.vehicleId);
   if (!manifest?.supportedFeatures.stance || !vehicle) {

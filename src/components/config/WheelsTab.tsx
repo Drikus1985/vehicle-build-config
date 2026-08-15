@@ -1,9 +1,40 @@
-import { getManifestForVehicle, getWheelVariants } from '@/lib/catalog';
+import {
+  getManifestForVehicle,
+  getOemWheelsetPart,
+  getVehicle,
+  getWheelVariants,
+  hasActiveOemWheelset,
+} from '@/lib/catalog';
 import { checkAxleFitment, computeTyreSpec, diameterDeltaPct } from '@/lib/fitment/tyres';
 import { STOCK_AXLE } from '@/lib/build/defaults';
 import type { AxleSetup, TyreSetup } from '@/lib/schemas';
-import { setAxleSetup, setTyre, setWheelsLinked } from '@/state/buildActions';
+import { setAxleSetup, setPartRemoved, setTyre, setWheelsLinked } from '@/state/buildActions';
 import { useBuildStore } from '@/state/buildStore';
+
+/** Banner shown while a factory (in-model) wheel set suspends the parametric system. */
+export function OemWheelsetNotice({ context }: { context: 'wheels' | 'stance' }) {
+  const build = useBuildStore((s) => s.build);
+  if (!build || !hasActiveOemWheelset(build)) return null;
+  const vehicle = getVehicle(build.vehicleId);
+  const oemPart = vehicle ? getOemWheelsetPart(vehicle) : undefined;
+  return (
+    <div className="panel border-accent-500/40 p-3">
+      <p className="text-[11px] leading-relaxed text-graphite-300">
+        <strong className="text-ivory-100">
+          {oemPart?.name ?? 'Factory wheel set'} is installed.
+        </strong>{' '}
+        {context === 'wheels'
+          ? 'The configurable wheel/tyre system is suspended so the two never overlap.'
+          : 'Stance preview is suspended because the baked factory wheels cannot follow the stance rig.'}
+      </p>
+      {oemPart && (
+        <button className="btn-accent mt-2 w-full" onClick={() => setPartRemoved(oemPart.id, true)}>
+          Remove factory set &amp; use configurable wheels
+        </button>
+      )}
+    </div>
+  );
+}
 
 function NumberField({
   label,
@@ -191,6 +222,13 @@ function AxleEditor({ axle, setup }: { axle: 'front' | 'rear'; setup: AxleSetup 
 export function WheelsTab() {
   const build = useBuildStore((s) => s.build);
   if (!build) return null;
+  if (hasActiveOemWheelset(build)) {
+    return (
+      <div className="flex flex-col gap-3">
+        <OemWheelsetNotice context="wheels" />
+      </div>
+    );
+  }
   const manifest = getManifestForVehicle(build.vehicleId);
   if (!manifest?.supportedFeatures.wheelSwap) {
     return (

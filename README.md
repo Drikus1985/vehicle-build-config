@@ -10,6 +10,25 @@ The bundled, fully component-mapped vehicle is the **Titanforge TF-100 Stepside*
 production vehicle. Other catalogue entries are browsable metadata only until rights-safe
 assets are added. The catalogue is representative, not historically complete.
 
+## 1970 Chevrolet Nova SS 396 (licensed asset — file not committed)
+
+The catalogue also includes a fully mapped **1970 Nova SS 396** built from a purchased stock
+3D model (115 named meshes: body panels, brightwork, lights, interior, badges and a factory
+wheel set). Its Standard License does **not** permit public redistribution of the source
+asset, so the model file is intentionally excluded from this repository (`.gitignore`).
+
+To enable it locally, place the purchased GLB at:
+
+```
+public/assets/vehicles/nova-1970.glb
+```
+
+Until the file is present, the Nova shows a truthful missing-asset state in the viewer.
+While its **factory wheel & tyre set** part is installed (the default), the parametric
+wheel/tyre/stance system is suspended so the two never render on top of each other — remove
+the factory set from the Wheels tab or Parts tab to configure wheels and stance. Left/right
+panel pairs are merged in the source model, so they edit as pairs.
+
 ## Setup
 
 ```bash

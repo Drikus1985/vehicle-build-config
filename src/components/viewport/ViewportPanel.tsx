@@ -31,7 +31,9 @@ class ViewerErrorBoundary extends Component<
           </p>
           <p className="max-w-sm text-xs text-graphite-400">
             Your build data is safe — rendering and configuration are separate. Try reloading the
-            viewer; if it keeps failing, your browser/GPU may not support WebGL 2.
+            viewer. If the error mentions a failed fetch, the vehicle&apos;s asset file may not be
+            installed (some licensed assets are not bundled — see the vehicle&apos;s Known
+            limitations in the library). Otherwise your browser/GPU may not support WebGL 2.
           </p>
           <button
             className="btn-accent"

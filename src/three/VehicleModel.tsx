@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useGLTF, Html } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
 import type { AssetManifest, Build } from '@/lib/schemas';
-import { getPart, getVariant } from '@/lib/catalog';
+import { getPart, getVariant, hasActiveOemWheelset } from '@/lib/catalog';
 import { computeTyreSpec } from '@/lib/fitment/tyres';
 import { statusMeta } from '@/lib/titanforge';
 import { newId } from '@/lib/build/defaults';
@@ -14,14 +14,28 @@ import { Wheels } from './Wheels';
 const ACCENT = new THREE.Color('#f59e0b');
 const HOVER = new THREE.Color('#f5cf8b');
 
+/** Original material values captured at load, used to reset after paint/ghost. */
+interface MaterialSnapshot {
+  color: THREE.Color;
+  metalness: number;
+  roughness: number;
+  opacity: number;
+  transparent: boolean;
+}
+
 interface NodeEntry {
-  mesh: THREE.Mesh;
-  material: THREE.MeshPhysicalMaterial;
+  /** The named node — a Mesh, or a Group for multi-primitive glTF nodes. */
+  object: THREE.Object3D;
+  meshes: THREE.Mesh[];
+  /** Our per-node material clones (paintable zones get fresh physical materials,
+   *  everything else keeps a clone of the asset's original PBR material). */
+  materials: THREE.MeshStandardMaterial[];
+  originals: MaterialSnapshot[];
+  paintable: boolean;
   zoneId: string | null;
   componentId: string | null;
   basePosition: THREE.Vector3;
   explodeOffset: THREE.Vector3 | null;
-  baseOpacity: number;
 }
 
 interface VehicleModelProps {
@@ -29,6 +43,14 @@ interface VehicleModelProps {
   /** The build to display (current build, or stock reference in compare mode). */
   build: Build;
   interactive: boolean;
+}
+
+function collectMeshes(object: THREE.Object3D): THREE.Mesh[] {
+  const meshes: THREE.Mesh[] = [];
+  object.traverse((o) => {
+    if (o instanceof THREE.Mesh) meshes.push(o);
+  });
+  return meshes;
 }
 
 export function VehicleModel({ manifest, build, interactive }: VehicleModelProps) {
@@ -48,39 +70,66 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   const setPlacingAnnotation = useUiStore((s) => s.setPlacingAnnotation);
   const toast = useUiStore((s) => s.toast);
 
-  // Clone the cached scene and give every mapped node its own physical
-  // material so zones, overrides, ghosting and highlights are per-node.
+  // Clone the cached scene and give every mapped node its own materials.
+  // Paintable zones get fresh physical materials driven by build paint;
+  // non-paintable zones keep clones of the asset's original PBR materials
+  // (preserving chrome/glass/transmission looks from real assets).
   const { root, nodes } = useMemo(() => {
     const root = gltf.scene.clone(true);
     const nodes = new Map<string, NodeEntry>();
     const zoneById = new Map(manifest.materialZones.map((z) => [z.id, z]));
     for (const nodeDef of manifest.meshNodes) {
       const obj = root.getObjectByName(nodeDef.nodeName);
-      if (!(obj instanceof THREE.Mesh)) continue;
+      if (!obj) continue;
+      const meshes = collectMeshes(obj);
+      if (meshes.length === 0) continue;
       const zone = nodeDef.materialZoneId ? zoneById.get(nodeDef.materialZoneId) : undefined;
-      const material = new THREE.MeshPhysicalMaterial({
-        color: zone?.defaultColorHex ?? '#888888',
-        metalness: zone?.defaultFinish.metallic ?? 0.2,
-        roughness: zone?.defaultFinish.roughness ?? 0.5,
-        clearcoat: zone?.defaultFinish.clearcoat ?? 0,
-        side: THREE.DoubleSide,
-      });
-      const baseOpacity = nodeDef.materialZoneId === 'glass' ? 0.45 : 1;
-      if (baseOpacity < 1) {
-        material.transparent = true;
-        material.opacity = baseOpacity;
+      const paintable = zone?.paintable === true;
+      const materials: THREE.MeshStandardMaterial[] = [];
+      const originals: MaterialSnapshot[] = [];
+      for (const mesh of meshes) {
+        let material: THREE.MeshStandardMaterial;
+        if (paintable && zone) {
+          material = new THREE.MeshPhysicalMaterial({
+            color: zone.defaultColorHex,
+            metalness: zone.defaultFinish.metallic,
+            roughness: zone.defaultFinish.roughness,
+            clearcoat: zone.defaultFinish.clearcoat,
+            side: THREE.DoubleSide,
+          });
+        } else {
+          const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+          material =
+            source instanceof THREE.MeshStandardMaterial
+              ? (source.clone() as THREE.MeshStandardMaterial)
+              : new THREE.MeshStandardMaterial({
+                  color: zone?.defaultColorHex ?? '#888888',
+                  metalness: zone?.defaultFinish.metallic ?? 0.2,
+                  roughness: zone?.defaultFinish.roughness ?? 0.5,
+                });
+        }
+        mesh.material = material;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        materials.push(material);
+        originals.push({
+          color: material.color.clone(),
+          metalness: material.metalness,
+          roughness: material.roughness,
+          opacity: material.opacity,
+          transparent: material.transparent,
+        });
       }
-      obj.material = material;
-      obj.castShadow = true;
-      obj.receiveShadow = true;
       nodes.set(nodeDef.nodeName, {
-        mesh: obj,
-        material,
+        object: obj,
+        meshes,
+        materials,
+        originals,
+        paintable,
         zoneId: nodeDef.materialZoneId,
         componentId: nodeDef.componentId,
         basePosition: obj.position.clone(),
         explodeOffset: nodeDef.explodeOffset ? new THREE.Vector3(...nodeDef.explodeOffset) : null,
-        baseOpacity,
       });
     }
     return { root, nodes };
@@ -89,7 +138,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   useEffect(() => {
     return () => {
       // Cloned materials are ours to dispose; geometries belong to the loader cache.
-      for (const entry of nodes.values()) entry.material.dispose();
+      for (const entry of nodes.values()) entry.materials.forEach((m) => m.dispose());
     };
   }, [nodes]);
 
@@ -100,48 +149,47 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
     return map;
   }, [build.installed]);
 
+  const oemWheelsActive = useMemo(() => hasActiveOemWheelset(build), [build]);
+
   // --- Paint & material overrides ------------------------------------------
   useEffect(() => {
     const bodyColor = build.paint['body']?.colorHex ?? '#888888';
     for (const entry of nodes.values()) {
-      const zone = manifest.materialZones.find((z) => z.id === entry.zoneId);
-      let color = zone?.defaultColorHex ?? '#888888';
-      let metallic = zone?.defaultFinish.metallic ?? 0.2;
-      let roughness = zone?.defaultFinish.roughness ?? 0.5;
-      let clearcoat = zone?.defaultFinish.clearcoat ?? 0;
       const paint = entry.zoneId ? build.paint[entry.zoneId] : undefined;
-      if (paint) {
-        color = paint.colorHex;
-        metallic = paint.metallic;
-        roughness = paint.roughness;
-        clearcoat = paint.clearcoat;
-      }
-      // material-override variants (e.g. painted bumpers) take precedence.
       const installed = entry.componentId ? installedByPart.get(entry.componentId) : undefined;
       const variant = installed?.variantId ? getVariant(installed.variantId) : undefined;
-      if (variant?.visual.kind === 'material-override') {
-        const v = variant.visual;
-        if (v.useBodyColor) color = bodyColor;
-        else if (v.colorHex) color = v.colorHex;
-        if (v.metallic !== undefined) metallic = v.metallic;
-        if (v.roughness !== undefined) roughness = v.roughness;
-      }
-      if (entry.zoneId === 'glass') {
-        const tint = build.glassTint;
-        const base = new THREE.Color(color);
-        base.lerp(new THREE.Color('#090b0d'), tint);
-        entry.material.color.copy(base);
-        entry.material.opacity = Math.min(0.92, entry.baseOpacity + tint * 0.55);
-      } else {
-        entry.material.color.set(color);
-      }
-      entry.material.metalness = metallic;
-      entry.material.roughness = Math.max(0.02, roughness);
-      entry.material.clearcoat = clearcoat;
-      entry.material.clearcoatRoughness = 0.08;
-      entry.material.needsUpdate = false;
+      const override = variant?.visual.kind === 'material-override' ? variant.visual : null;
+
+      entry.materials.forEach((material, i) => {
+        const original = entry.originals[i]!;
+        // Base state: build paint for paintable zones, asset original otherwise.
+        if (entry.paintable && paint) {
+          material.color.set(paint.colorHex);
+          material.metalness = paint.metallic;
+          material.roughness = Math.max(0.02, paint.roughness);
+          if (material instanceof THREE.MeshPhysicalMaterial) {
+            material.clearcoat = paint.clearcoat;
+            material.clearcoatRoughness = 0.08;
+          }
+        } else {
+          material.color.copy(original.color);
+          material.metalness = original.metalness;
+          material.roughness = original.roughness;
+        }
+        // material-override variants (e.g. painted bumpers) take precedence.
+        if (override) {
+          if (override.useBodyColor) material.color.set(bodyColor);
+          else if (override.colorHex) material.color.set(override.colorHex);
+          if (override.metallic !== undefined) material.metalness = override.metallic;
+          if (override.roughness !== undefined) material.roughness = override.roughness;
+        }
+        // Glass tint darkens and thickens the glass zone.
+        if (entry.zoneId === 'glass') {
+          material.color.lerp(new THREE.Color('#090b0d'), build.glassTint);
+        }
+      });
     }
-  }, [nodes, manifest, build.paint, build.glassTint, installedByPart]);
+  }, [nodes, build.paint, build.glassTint, installedByPart]);
 
   // --- Visibility (install/remove, variants, isolate) -----------------------
   useEffect(() => {
@@ -162,7 +210,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
           visible = false;
         }
       }
-      entry.mesh.visible = visible;
+      entry.object.visible = visible;
     }
   }, [nodes, installedByPart, isolatedComponentId]);
 
@@ -198,25 +246,31 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
         intensity = Math.min(1, intensity + 0.2);
       }
 
-      entry.material.emissive.copy(emissive ?? new THREE.Color(0x000000));
-      entry.material.emissiveIntensity = intensity;
-
       // Ghost/x-ray: everything except the selected component becomes translucent.
       const ghosted =
         (ghostMode && !isSelected) ||
         (mode === 'fabrication' &&
           fabFilter !== 'all' &&
           !(record && record.status !== 'stock' && emissive));
-      if (ghosted) {
-        entry.material.transparent = true;
-        entry.material.opacity = Math.min(entry.baseOpacity, 0.14);
-        entry.material.depthWrite = false;
-      } else {
-        const glassOpacity = Math.min(0.92, entry.baseOpacity + build.glassTint * 0.55);
-        entry.material.opacity = entry.zoneId === 'glass' ? glassOpacity : entry.baseOpacity;
-        entry.material.transparent = entry.baseOpacity < 1;
-        entry.material.depthWrite = true;
-      }
+
+      entry.materials.forEach((material, i) => {
+        const original = entry.originals[i]!;
+        material.emissive.copy(emissive ?? new THREE.Color(0x000000));
+        material.emissiveIntensity = intensity;
+        if (ghosted) {
+          material.transparent = true;
+          material.opacity = Math.min(original.opacity, 0.14);
+          material.depthWrite = false;
+        } else if (entry.zoneId === 'glass') {
+          material.opacity = Math.min(0.92, original.opacity + build.glassTint * 0.55);
+          material.transparent = true;
+          material.depthWrite = false;
+        } else {
+          material.opacity = original.opacity;
+          material.transparent = original.transparent;
+          material.depthWrite = !original.transparent;
+        }
+      });
     }
   }, [
     nodes,
@@ -234,7 +288,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   useEffect(() => {
     for (const entry of nodes.values()) {
       if (entry.explodeOffset) {
-        entry.mesh.position
+        entry.object.position
           .copy(entry.basePosition)
           .addScaledVector(entry.explodeOffset, explodeFactor);
       }
@@ -242,10 +296,12 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   }, [nodes, explodeFactor]);
 
   // --- Stance: body lift/rake from ride height + tyre diameter --------------
+  // Suspended while a factory (in-model) wheel set is installed, because the
+  // baked wheels cannot follow the parametric stance rig.
   const frontAnchor = manifest.wheelAnchors.find((a) => a.axle === 'front');
   const rearAnchor = manifest.wheelAnchors.find((a) => a.axle === 'rear');
   const stancePose = useMemo(() => {
-    if (!frontAnchor || !rearAnchor) return { lift: 0, pitch: 0, pivotZ: 0 };
+    if (!frontAnchor || !rearAnchor || oemWheelsActive) return { lift: 0, pitch: 0 };
     const frontR = computeTyreSpec(build.wheels.front.tyre).diameterMm / 2000;
     const rearR = computeTyreSpec(build.wheels.rear.tyre).diameterMm / 2000;
     const frontLift = frontR - frontAnchor.position[1] + build.stance.rideHeightFrontMm / 1000;
@@ -254,9 +310,15 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
     return {
       lift: (frontLift + rearLift) / 2,
       pitch: Math.atan2(rearLift - frontLift, wheelbase),
-      pivotZ: (frontAnchor.position[2] + rearAnchor.position[2]) / 2,
     };
-  }, [frontAnchor, rearAnchor, build.wheels.front.tyre, build.wheels.rear.tyre, build.stance]);
+  }, [
+    frontAnchor,
+    rearAnchor,
+    oemWheelsActive,
+    build.wheels.front.tyre,
+    build.wheels.rear.tyre,
+    build.stance,
+  ]);
 
   // --- Pointer interaction --------------------------------------------------
   const resolveComponent = (
@@ -333,7 +395,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
           </Html>
         ))}
       </group>
-      <Wheels manifest={manifest} build={build} />
+      {!oemWheelsActive && <Wheels manifest={manifest} build={build} />}
     </group>
   );
 }

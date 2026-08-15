@@ -30,6 +30,8 @@ export function startAutosave(): () => void {
 
   const unsubscribe = useBuildStore.subscribe((state) => {
     if (state.dirtyCounter === lastSavedCounter || !state.build) return;
+    // Show pending state immediately so "Saved locally" always means flushed.
+    useUiStore.getState().setSaveStatus('saving');
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => void flush(), DEBOUNCE_MS);
   });

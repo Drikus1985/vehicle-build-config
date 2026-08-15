@@ -1,7 +1,24 @@
 # Verification report
 
-Date: 2026-08-09 · Environment: Linux, Node 22.22, npm 10.9, Chromium (pre-provisioned) with
-SwiftShader WebGL.
+Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
+npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
+
+## Nova SS 396 integration (2026-08-15)
+
+- 66/66 unit tests including Nova manifest/parts schema + reference consistency, OEM-wheelset
+  suspend/restore behaviour, and (when the licensed GLB is installed locally) a two-way
+  GLB↔manifest node cross-check (every manifest node exists in the GLB, every GLB node is
+  mapped).
+- Renderer refactor verified visually with the real asset: body repaint affects only the body
+  zone; chrome/glass (KHR transmission)/black trim/interior keep the asset's original PBR
+  materials; multi-primitive nodes (licence plates) are handled.
+- Factory wheel set: installed by default; removing it (Wheels tab banner or Parts tab)
+  enables parametric wheels/stance — verified in-browser with zero console errors; undo
+  restores the factory set.
+- The purchased GLB is `.gitignore`d (Standard License forbids public redistribution); tests
+  that need it skip cleanly when absent, and the viewer shows a truthful missing-asset path.
+- Note: the 32 MB, ~1M-triangle asset is slow under headless SwiftShader (software WebGL);
+  fine on hardware GPUs. Draco/meshopt compression is a sensible next optimisation.
 
 ## Commands run and results
 

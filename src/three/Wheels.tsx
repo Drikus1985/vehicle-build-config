@@ -31,7 +31,9 @@ function AnchoredWheel({
 
   useEffect(() => () => built.dispose(), [built]);
 
-  const isLeft = anchor.side === 'left';
+  // Outboard direction comes from the anchor's X sign — different assets put
+  // "left" on different sides of the X axis.
+  const outboardSign = Math.sign(anchor.position[0]) || 1;
   const camberDeg = anchor.axle === 'front' ? stance.camberFrontDeg : stance.camberRearDeg;
   const trackDeltaM =
     (anchor.axle === 'front' ? stance.trackWidthFrontMm : stance.trackWidthRearMm) / 1000;
@@ -39,12 +41,14 @@ function AnchoredWheel({
   const steerRad = anchor.axle === 'front' ? THREE.MathUtils.degToRad(stance.steeringAngleDeg) : 0;
   const camberRad = THREE.MathUtils.degToRad(camberDeg);
 
-  const x = anchor.position[0] + (isLeft ? -outboardM : outboardM);
+  const x = anchor.position[0] + outboardSign * outboardM;
 
   return (
     <group position={[x, built.radiusM, anchor.position[2]]} rotation-y={steerRad}>
-      <group rotation-z={isLeft ? camberRad : -camberRad}>
-        <group rotation-y={isLeft ? Math.PI : 0}>
+      {/* Negative camber leans the wheel top inboard on either side. */}
+      <group rotation-z={outboardSign > 0 ? -camberRad : camberRad}>
+        {/* The procedural wheel's face points +X; flip it on the -X side. */}
+        <group rotation-y={outboardSign > 0 ? 0 : Math.PI}>
           <primitive object={built.group} />
         </group>
       </group>

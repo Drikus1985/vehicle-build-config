@@ -29,6 +29,8 @@ test.describe('workspace smoke', () => {
     await openDemoVehicle(page);
     await page.getByRole('tab', { name: 'Paint' }).click();
     await page.getByRole('button', { name: '60s: Marina Blue' }).click();
+    // The change first marks the save pending ("Saving…"), then flushes.
+    await expect(page.getByText('Saving…')).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText('Saved locally')).toBeVisible({ timeout: 10_000 });
 
     await page.reload();

@@ -39,6 +39,35 @@ export const VEHICLES: Vehicle[] = [
     ],
   },
   {
+    id: 'veh-nova-1970',
+    year: 1970,
+    make: 'Chevrolet',
+    model: 'Nova',
+    trim: 'SS 396',
+    vehicleType: 'car',
+    bodyStyle: 'coupe',
+    generation: 'Third generation (Mk3)',
+    dimensionsMm: { length: 4980, width: 1900, height: 1440, wheelbase: 2900 },
+    tags: ['muscle', 'x-body', 'big-block', 'fully-editable'],
+    description:
+      'Third-generation Nova SS 396 coupe from a purchased, fully part-separated stock 3D model: 115 named meshes covering body panels, brightwork, lights, interior, badges and a factory wheel set.',
+    attribution: {
+      sourceName: 'Purchased stock 3D model (Hum3D-style marketplace)',
+      creator: 'Third-party stock artist',
+      licence: 'Standard License (purchased)',
+      attributionText:
+        'Chevrolet Nova Mk3 SS 396 1970 stock 3D model, purchased under a Standard License. Asset file is excluded from the public repository.',
+      reuseConfirmed: true,
+    },
+    assetManifestId: 'manifest-nova-1970',
+    knownLimitations: [
+      'Model file is not committed to the public repository (Standard License) — place nova-1970.glb in public/assets/vehicles/ locally; see README.',
+      'Left/right panel pairs (doors, fenders) are merged into single meshes by the source model, so they edit as pairs.',
+      'While the factory wheel set is installed, parametric wheels/tyres/stance are suspended (remove it in the Parts tab or from the Wheels tab to configure them).',
+      'No engine model in the source asset (radiator only); dimensions are display-asset measurements, not engineering data.',
+    ],
+  },
+  {
     id: 'veh-belair-1957',
     year: 1957,
     make: 'Chevrolet',
