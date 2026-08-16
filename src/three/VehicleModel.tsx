@@ -54,7 +54,15 @@ function collectMeshes(object: THREE.Object3D): THREE.Mesh[] {
 }
 
 export function VehicleModel({ manifest, build, interactive }: VehicleModelProps) {
-  const gltf = useGLTF(manifest.source.uri);
+  // Load the base asset plus the optional add-on asset (e.g. project-original
+  // scoops/spoilers fitted to a licensed base model). Node names from both
+  // files share one namespace, defined by the manifest.
+  const assetUrls = manifest.addonSource
+    ? [manifest.source.uri, manifest.addonSource.uri]
+    : [manifest.source.uri];
+  const gltfs = useGLTF(assetUrls);
+  const mainScene = gltfs[0]!.scene;
+  const addonScene = gltfs[1]?.scene ?? null;
   const bodyRef = useRef<THREE.Group>(null);
 
   const select = useUiStore((s) => s.select);
@@ -75,7 +83,9 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   // non-paintable zones keep clones of the asset's original PBR materials
   // (preserving chrome/glass/transmission looks from real assets).
   const { root, nodes } = useMemo(() => {
-    const root = gltf.scene.clone(true);
+    const root = new THREE.Group();
+    root.add(mainScene.clone(true));
+    if (addonScene) root.add(addonScene.clone(true));
     const nodes = new Map<string, NodeEntry>();
     const zoneById = new Map(manifest.materialZones.map((z) => [z.id, z]));
     for (const nodeDef of manifest.meshNodes) {
@@ -133,7 +143,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
       });
     }
     return { root, nodes };
-  }, [gltf.scene, manifest]);
+  }, [mainScene, addonScene, manifest]);
 
   useEffect(() => {
     return () => {

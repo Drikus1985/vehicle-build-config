@@ -21,6 +21,13 @@ export const NOVA_MANIFEST: AssetManifest = {
     sizeBytes: 32257880,
     compression: 'none',
   },
+  // Project-original add-on parts (scoops, spoilers) fitted to this vehicle;
+  // CC0 and committed to the repo, unlike the licensed base model.
+  addonSource: {
+    type: 'gltf',
+    uri: '/assets/vehicles/nova-addons.glb',
+    compression: 'none',
+  },
   attribution: {
     sourceName: 'Purchased stock 3D model (Hum3D-style marketplace)',
     creator: 'Third-party stock artist',
@@ -52,7 +59,7 @@ export const NOVA_MANIFEST: AssetManifest = {
     {
       nodeName: 'hood',
       componentId: 'part-nova-hood',
-      materialZoneId: 'body',
+      materialZoneId: 'hood',
       explodeOffset: [0, 0.55, 0.3],
     },
     {
@@ -96,25 +103,25 @@ export const NOVA_MANIFEST: AssetManifest = {
     {
       nodeName: 'bumper_f',
       componentId: 'part-nova-bumper-front',
-      materialZoneId: 'chrome',
+      materialZoneId: 'bumper-front',
       explodeOffset: [0, 0, 0.7],
     },
     {
       nodeName: 'bumper_b',
       componentId: 'part-nova-bumper-rear',
-      materialZoneId: 'chrome',
+      materialZoneId: 'bumper-rear',
       explodeOffset: [0, 0, -0.7],
     },
     {
       nodeName: 'grill_chrome',
       componentId: 'part-nova-grille',
-      materialZoneId: 'chrome',
+      materialZoneId: 'grille',
       explodeOffset: [0, 0, 0.55],
     },
     {
       nodeName: 'grill_metal',
       componentId: 'part-nova-grille',
-      materialZoneId: 'steel',
+      materialZoneId: 'grille',
       explodeOffset: [0, 0, 0.55],
     },
     {
@@ -132,13 +139,13 @@ export const NOVA_MANIFEST: AssetManifest = {
     {
       nodeName: 'molding',
       componentId: 'part-nova-trim',
-      materialZoneId: 'chrome',
+      materialZoneId: 'trim',
       explodeOffset: [0, 0.1, 0],
     },
     {
       nodeName: 'window_molding_chrome',
       componentId: 'part-nova-trim',
-      materialZoneId: 'chrome',
+      materialZoneId: 'trim',
       explodeOffset: [0, 0.2, 0],
     },
     { nodeName: 'nichrome_05', componentId: 'part-nova-trim', materialZoneId: 'trim-black' },
@@ -395,6 +402,37 @@ export const NOVA_MANIFEST: AssetManifest = {
     { nodeName: 'brakedisk_f_r', componentId: 'part-nova-brakes', materialZoneId: 'brake' },
     { nodeName: 'brakedisk_b_l', componentId: 'part-nova-brakes', materialZoneId: 'brake' },
     { nodeName: 'brakedisk_b_r', componentId: 'part-nova-brakes', materialZoneId: 'brake' },
+    // --- Add-on parts (project-original nova-addons.glb) ---------------------
+    {
+      nodeName: 'cowl_scoop_2in',
+      componentId: 'part-nova-cowl-scoop',
+      materialZoneId: 'hood',
+      explodeOffset: [0, 0.5, 0.3],
+    },
+    {
+      nodeName: 'cowl_scoop_4in',
+      componentId: 'part-nova-cowl-scoop',
+      materialZoneId: 'hood',
+      explodeOffset: [0, 0.5, 0.3],
+    },
+    {
+      nodeName: 'chin_spoiler',
+      componentId: 'part-nova-chin-spoiler',
+      materialZoneId: 'body',
+      explodeOffset: [0, -0.15, 0.6],
+    },
+    {
+      nodeName: 'trunk_spoiler_ducktail',
+      componentId: 'part-nova-trunk-spoiler',
+      materialZoneId: 'body',
+      explodeOffset: [0, 0.4, -0.5],
+    },
+    {
+      nodeName: 'trunk_spoiler_wing',
+      componentId: 'part-nova-trunk-spoiler',
+      materialZoneId: 'body',
+      explodeOffset: [0, 0.4, -0.5],
+    },
     // --- Factory wheel & tyre set (hidden when parametric wheels are used) ---
     ...[
       'tire_f_l',
@@ -448,6 +486,41 @@ export const NOVA_MANIFEST: AssetManifest = {
       label: 'Interior',
       defaultColorHex: '#656565',
       defaultFinish: { metallic: 0, roughness: 0.7, clearcoat: 0 },
+      paintable: true,
+    },
+    {
+      id: 'hood',
+      label: 'Hood',
+      defaultColorHex: '#316f8b',
+      defaultFinish: { metallic: 0.15, roughness: 0.4, clearcoat: 0.7 },
+      paintable: true,
+    },
+    {
+      id: 'bumper-front',
+      label: 'Front bumper',
+      defaultColorHex: '#c9cdd3',
+      defaultFinish: { metallic: 1, roughness: 0.1, clearcoat: 0 },
+      paintable: true,
+    },
+    {
+      id: 'bumper-rear',
+      label: 'Rear bumper',
+      defaultColorHex: '#c9cdd3',
+      defaultFinish: { metallic: 1, roughness: 0.1, clearcoat: 0 },
+      paintable: true,
+    },
+    {
+      id: 'grille',
+      label: 'Grille',
+      defaultColorHex: '#b9bdc4',
+      defaultFinish: { metallic: 1, roughness: 0.15, clearcoat: 0 },
+      paintable: true,
+    },
+    {
+      id: 'trim',
+      label: 'Trim mouldings',
+      defaultColorHex: '#c9cdd3',
+      defaultFinish: { metallic: 1, roughness: 0.12, clearcoat: 0 },
       paintable: true,
     },
     {

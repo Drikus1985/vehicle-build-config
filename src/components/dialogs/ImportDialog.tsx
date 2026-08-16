@@ -37,6 +37,7 @@ export function ImportDialog() {
   const closeDialog = useUiStore((s) => s.closeDialog);
   const [stage, setStage] = useState<Stage>({ step: 'pick' });
   const [rights, setRights] = useState<RightsForm>(EMPTY_RIGHTS);
+  const [asWheel, setAsWheel] = useState(false);
   const [assets, setAssets] = useState<Omit<ImportedAsset, 'blob'>[]>([]);
   const readerRef = useRef<FileReader | null>(null);
 
@@ -98,6 +99,7 @@ export function ImportDialog() {
       id: newId('asset'),
       name: sanitizeFilename(stage.file.name),
       kind: stage.result.kind,
+      ...(asWheel && stage.result.kind !== 'image' ? { role: 'wheel' as const } : {}),
       mime: stage.result.mime,
       sizeBytes: stage.data.size,
       blob: stage.data,
@@ -117,6 +119,7 @@ export function ImportDialog() {
       await repositories.assets.add(asset);
       setStage({ step: 'done', name: asset.name });
       setRights(EMPTY_RIGHTS);
+      setAsWheel(false);
       refreshAssets();
       toast('success', `Added "${asset.name}" to the asset library.`);
     } catch {
@@ -203,6 +206,21 @@ export function ImportDialog() {
               </div>
             </div>
 
+            {stage.result.kind !== 'image' && (
+              <label className="flex items-start gap-2 text-[11px]">
+                <input
+                  type="checkbox"
+                  checked={asWheel}
+                  onChange={(e) => setAsWheel(e.target.checked)}
+                />
+                <span>
+                  This is a <strong className="text-ivory-100">wheel model</strong> — offer it in
+                  Wheels &amp; Tyres. It will be auto-oriented and scaled to the configured overall
+                  tyre diameter (display fit, not an engineering fit).
+                </span>
+              </label>
+            )}
+
             <fieldset className="flex flex-col gap-1.5">
               <legend className="field-label">Provenance &amp; rights (required)</legend>
               <input
@@ -276,7 +294,7 @@ export function ImportDialog() {
                   key={a.id}
                   className="flex items-center gap-2 rounded border border-graphite-700/60 px-2 py-1.5"
                 >
-                  <span className="chip">{a.kind}</span>
+                  <span className="chip">{a.role === 'wheel' ? 'wheel' : a.kind}</span>
                   <span className="min-w-0 flex-1 truncate text-ivory-100">{a.name}</span>
                   <span className="text-[10px] text-graphite-400">
                     {(a.sizeBytes / 1024 / 1024).toFixed(1)} MB · {a.attribution.licence}

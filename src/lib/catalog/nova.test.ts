@@ -12,10 +12,22 @@ import {
 } from './index';
 import { assetManifestSchema, partSchema, partVariantSchema } from '@/lib/schemas';
 import { createDefaultBuild } from '@/lib/build/defaults';
-import { setPartRemoved } from '@/state/buildActions';
+import { setPartRemoved, setPartVariant } from '@/state/buildActions';
 import { useBuildStore } from '@/state/buildStore';
 
 const GLB_PATH = resolve(process.cwd(), 'public/assets/vehicles/nova-1970.glb');
+const ADDONS_GLB_PATH = resolve(process.cwd(), 'public/assets/vehicles/nova-addons.glb');
+
+function glbNodeNames(path: string): Set<string> {
+  const buffer = readFileSync(path);
+  expect(buffer.toString('ascii', 0, 4)).toBe('glTF');
+  const jsonLength = buffer.readUInt32LE(12);
+  const json = JSON.parse(buffer.toString('utf8', 20, 20 + jsonLength)) as {
+    nodes?: { name?: string; mesh?: number }[];
+  };
+  // Only mesh-bearing nodes matter to the manifest; container groups don't.
+  return new Set((json.nodes ?? []).filter((n) => n.mesh !== undefined).map((n) => n.name ?? ''));
+}
 
 describe('Nova catalogue data', () => {
   it('manifest, parts and variants pass their schemas with consistent references', () => {
@@ -69,33 +81,73 @@ describe('Nova catalogue data', () => {
     expect(hasActiveOemWheelset(useBuildStore.getState().build!)).toBe(false);
   });
 
-  // The purchased GLB is not committed (Standard License); this cross-check
-  // runs only where the file is installed locally.
-  it.skipIf(!existsSync(GLB_PATH))('every manifest node exists in the local Nova GLB', () => {
-    const buffer = readFileSync(GLB_PATH);
-    expect(buffer.toString('ascii', 0, 4)).toBe('glTF');
-    const jsonLength = buffer.readUInt32LE(12);
-    const json = JSON.parse(buffer.toString('utf8', 20, 20 + jsonLength)) as {
-      nodes?: { name?: string }[];
-    };
-    const names = new Set((json.nodes ?? []).map((n) => n.name));
-    for (const node of NOVA_MANIFEST.meshNodes) {
-      expect(names.has(node.nodeName), `GLB missing node ${node.nodeName}`).toBe(true);
-    }
-    // And the manifest maps every node in the GLB (nothing unaccounted for).
-    const mapped = new Set(NOVA_MANIFEST.meshNodes.map((n) => n.nodeName));
-    for (const name of names) {
-      expect(mapped.has(name as string), `GLB node ${name} unmapped in manifest`).toBe(true);
+  it('the committed add-on GLB contains every addon node the manifest names', () => {
+    const addonNames = glbNodeNames(ADDONS_GLB_PATH);
+    for (const name of [
+      'cowl_scoop_2in',
+      'cowl_scoop_4in',
+      'chin_spoiler',
+      'trunk_spoiler_ducktail',
+      'trunk_spoiler_wing',
+    ]) {
+      expect(addonNames.has(name), `addons GLB missing ${name}`).toBe(true);
     }
   });
 
-  it('a default Nova build validates and paints body + interior zones', () => {
+  // The purchased GLB is not committed (Standard License); this cross-check
+  // runs only where the file is installed locally.
+  it.skipIf(!existsSync(GLB_PATH))('every manifest node exists in the local GLBs', () => {
+    const names = new Set([...glbNodeNames(GLB_PATH), ...glbNodeNames(ADDONS_GLB_PATH)]);
+    for (const node of NOVA_MANIFEST.meshNodes) {
+      expect(names.has(node.nodeName), `GLBs missing node ${node.nodeName}`).toBe(true);
+    }
+    // And the manifest maps every node in both GLBs (nothing unaccounted for).
+    const mapped = new Set(NOVA_MANIFEST.meshNodes.map((n) => n.nodeName));
+    for (const name of names) {
+      expect(mapped.has(name), `GLB node ${name} unmapped in manifest`).toBe(true);
+    }
+  });
+
+  it('a default Nova build exposes every independent paint zone', () => {
     const vehicle = getVehicle('veh-nova-1970')!;
     const build = createDefaultBuild(vehicle);
-    expect(build.paint['body']).toBeDefined();
-    expect(build.paint['interior']).toBeDefined();
+    for (const zone of [
+      'body',
+      'interior',
+      'hood',
+      'bumper-front',
+      'bumper-rear',
+      'grille',
+      'trim',
+    ]) {
+      expect(build.paint[zone], `paint zone ${zone}`).toBeDefined();
+    }
     // Non-paintable zones must not appear in the paint state.
     expect(build.paint['chrome']).toBeUndefined();
     expect(build.paint['glass']).toBeUndefined();
+  });
+
+  it('interchange add-on parts start uninstalled with selectable variants', () => {
+    const vehicle = getVehicle('veh-nova-1970')!;
+    useBuildStore.getState().clear();
+    useBuildStore.getState().newBuildForVehicle(vehicle, 'Addon test');
+    const build = useBuildStore.getState().build!;
+    for (const partId of [
+      'part-nova-cowl-scoop',
+      'part-nova-chin-spoiler',
+      'part-nova-trunk-spoiler',
+    ]) {
+      expect(
+        build.installed.find((e) => e.partId === partId)?.removed,
+        `${partId} should start uninstalled`,
+      ).toBe(true);
+    }
+    // Installing the 4" cowl scoop selects its variant and shows only that node.
+    setPartVariant('part-nova-cowl-scoop', 'var-nova-cowl-4in');
+    const entry = useBuildStore
+      .getState()
+      .build!.installed.find((e) => e.partId === 'part-nova-cowl-scoop')!;
+    expect(entry.removed).toBe(false);
+    expect(entry.variantId).toBe('var-nova-cowl-4in');
   });
 });

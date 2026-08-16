@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   getManifestForVehicle,
   getOemWheelsetPart,
@@ -5,6 +6,9 @@ import {
   getWheelVariants,
   hasActiveOemWheelset,
 } from '@/lib/catalog';
+import { repositories } from '@/lib/persistence/idb';
+import type { ImportedAsset } from '@/lib/persistence/repositories';
+import { IMPORTED_WHEEL_PREFIX, isImportedWheelId } from '@/three/importedWheel';
 import { checkAxleFitment, computeTyreSpec, diameterDeltaPct } from '@/lib/fitment/tyres';
 import { STOCK_AXLE } from '@/lib/build/defaults';
 import type { AxleSetup, TyreSetup } from '@/lib/schemas';
@@ -75,7 +79,15 @@ function NumberField({
   );
 }
 
-function AxleEditor({ axle, setup }: { axle: 'front' | 'rear'; setup: AxleSetup }) {
+function AxleEditor({
+  axle,
+  setup,
+  wheelAssets,
+}: {
+  axle: 'front' | 'rear';
+  setup: AxleSetup;
+  wheelAssets: Omit<ImportedAsset, 'blob'>[];
+}) {
   const wheelVariants = getWheelVariants();
   const spec = computeTyreSpec(setup.tyre);
   const stockSpec = computeTyreSpec(STOCK_AXLE.tyre);
@@ -99,6 +111,34 @@ function AxleEditor({ axle, setup }: { axle: 'front' | 'rear'; setup: AxleSetup 
             </button>
           ))}
         </div>
+        {wheelAssets.length > 0 && (
+          <div className="mt-1.5">
+            <span className="field-label">Imported wheels</span>
+            <div className="flex flex-wrap gap-1">
+              {wheelAssets.map((a) => {
+                const id = `${IMPORTED_WHEEL_PREFIX}${a.id}`;
+                return (
+                  <button
+                    key={a.id}
+                    className={`btn !py-1 ${setup.wheelVariantId === id ? 'btn-on' : ''}`}
+                    aria-pressed={setup.wheelVariantId === id}
+                    title={`${a.name} (${a.attribution.licence})`}
+                    onClick={() => setAxleSetup(axle, { wheelVariantId: id })}
+                  >
+                    {a.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {isImportedWheelId(setup.wheelVariantId) && (
+          <p className="mt-1 text-[10px] text-graphite-400">
+            Imported wheels render as complete wheels, auto-oriented and scaled to the configured
+            overall tyre diameter below. Whitewall/lettering options do not apply. If the asset is
+            missing in this browser, a steelie is shown instead.
+          </p>
+        )}
       </div>
       <NumberField
         label="Wheel width"
@@ -221,6 +261,21 @@ function AxleEditor({ axle, setup }: { axle: 'front' | 'rear'; setup: AxleSetup 
 
 export function WheelsTab() {
   const build = useBuildStore((s) => s.build);
+  const [wheelAssets, setWheelAssets] = useState<Omit<ImportedAsset, 'blob'>[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    void repositories.assets
+      .list()
+      .then((all) => {
+        if (mounted) setWheelAssets(all.filter((a) => a.role === 'wheel'));
+      })
+      .catch(() => {
+        if (mounted) setWheelAssets([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
   if (!build) return null;
   if (hasActiveOemWheelset(build)) {
     return (
@@ -259,13 +314,13 @@ export function WheelsTab() {
         <h3 className="mb-2 text-xs font-semibold text-ivory-100">
           {build.wheels.linked ? 'All four wheels' : 'Front axle'}
         </h3>
-        <AxleEditor axle="front" setup={build.wheels.front} />
+        <AxleEditor axle="front" setup={build.wheels.front} wheelAssets={wheelAssets} />
       </section>
 
       {!build.wheels.linked && (
         <section className="border-t border-graphite-700/60 pt-3">
           <h3 className="mb-2 text-xs font-semibold text-ivory-100">Rear axle</h3>
-          <AxleEditor axle="rear" setup={build.wheels.rear} />
+          <AxleEditor axle="rear" setup={build.wheels.rear} wheelAssets={wheelAssets} />
         </section>
       )}
 

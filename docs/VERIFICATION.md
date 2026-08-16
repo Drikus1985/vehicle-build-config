@@ -3,6 +3,24 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Nova customisation upgrades (2026-08-16)
+
+- **Independent paint zones** for Hood, Front/Rear bumper, Grille and Trim mouldings (plus
+  the existing Body/Interior). 74/74 unit tests including a zone-exposure test; verified
+  visually (black hood over red body, chrome elsewhere untouched, zero console errors).
+- **Interchange parts**: project-original CC0 add-on GLB (`nova-addons.glb`, committed;
+  regenerable via `npm run generate:nova-addons`) with 2"/4" cowl-induction scoops, chin
+  spoiler and ducktail/wing trunk spoilers. Manifest schema gained an optional
+  `addonSource`; the renderer merges both assets into one node namespace. Scoops follow the
+  Hood paint zone; spoilers follow Body. Cross-checked GLB↔manifest in tests and verified
+  installed in-browser.
+- **Imported wheels**: Import dialog can tag a GLB/STL as a wheel model; it appears in
+  Wheels & Tyres per axle, is auto-oriented (rotation-axis detection), centred and scaled to
+  the configured overall tyre diameter, with a steelie fallback when the asset is missing in
+  the current browser. Normalization covered by unit tests for all three source axes.
+- Deferred (next): custom numberplate text — planned as generated plates (canvas texture)
+  replacing the baked `LicPlate` meshes.
+
 ## Nova SS 396 integration (2026-08-15)
 
 - 66/66 unit tests including Nova manifest/parts schema + reference consistency, OEM-wheelset

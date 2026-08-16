@@ -25,6 +25,8 @@ export interface ImportedAsset {
   id: string;
   name: string;
   kind: 'image' | 'gltf' | 'stl';
+  /** Optional role: 'wheel' makes a 3D asset selectable in Wheels & Tyres. */
+  role?: 'wheel';
   mime: string;
   sizeBytes: number;
   blob: Blob;

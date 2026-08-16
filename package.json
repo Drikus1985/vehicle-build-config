@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "generate:demo-vehicle": "node scripts/generate-demo-vehicle.mjs"
+    "generate:demo-vehicle": "node scripts/generate-demo-vehicle.mjs",
+    "generate:nova-addons": "node scripts/generate-nova-addons.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.0.6",

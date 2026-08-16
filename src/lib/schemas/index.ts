@@ -174,6 +174,11 @@ export const assetManifestSchema = z.object({
   id: z.string().min(1),
   schemaVersion: z.number().int().default(SCHEMA_VERSION),
   source: assetSourceSchema,
+  /**
+   * Optional companion asset (e.g. project-original add-on parts fitted to a
+   * licensed base model). Its nodes join the same meshNodes namespace.
+   */
+  addonSource: assetSourceSchema.optional(),
   attribution: attributionSchema,
   /** Multiplier applied so 1 world unit == 1 metre. */
   scale: z.number().positive(),
