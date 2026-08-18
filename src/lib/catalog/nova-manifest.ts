@@ -650,6 +650,8 @@ export const NOVA_MANIFEST: AssetManifest = {
       wellClearanceWidthM: 0.3,
     },
   ],
+  // Shader-painted racing stripes may cover these paintable zones.
+  stripeZones: ['body', 'hood'],
   // Generated numberplates replace the baked LicPlate meshes (positions and
   // 520 x 110 mm size measured from the asset).
   plateMounts: [

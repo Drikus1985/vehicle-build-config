@@ -214,6 +214,8 @@ export const assetManifestSchema = z.object({
   materialZones: z.array(materialZoneSchema),
   wheelAnchors: z.array(wheelAnchorSchema),
   plateMounts: z.array(plateMountSchema).default([]),
+  /** Material-zone ids the shader-painted racing stripes may cover. */
+  stripeZones: z.array(z.string()).default([]),
   cameraTargets: z.object({
     defaultTarget: vec3Schema,
     defaultPosition: vec3Schema,
@@ -432,6 +434,13 @@ export const plateSetupSchema = z.object({
 });
 export type PlateSetup = z.infer<typeof plateSetupSchema>;
 
+export const stripeSetupSchema = z.object({
+  styleId: z.enum(['none', 'single', 'twin-rally', 'rocker']),
+  colorHex: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  widthScale: z.number().min(0.5).max(1.5),
+});
+export type StripeSetup = z.infer<typeof stripeSetupSchema>;
+
 export const cameraStateSchema = z.object({
   position: vec3Schema,
   target: vec3Schema,
@@ -454,6 +463,8 @@ export const buildSchema = z.object({
   stance: stanceSchema,
   /** Defaulted so builds saved before this field existed keep loading. */
   plateSetup: plateSetupSchema.default({ text: 'NOVA 70', styleId: 'classic-black' }),
+  /** Defaulted so builds saved before this field existed keep loading. */
+  stripes: stripeSetupSchema.default({ styleId: 'none', colorHex: '#f2f1ec', widthScale: 1 }),
   annotations: z.array(annotationSchema),
   fabricationRecords: z.record(z.string(), fabricationRecordSchema),
   cameraState: cameraStateSchema.nullable(),

@@ -2,6 +2,7 @@ import { getManifestForVehicle, getPartsForVehicle } from '@/lib/catalog';
 import type { AxleSetup, Build, PaintZoneSetting, Stance, Vehicle } from '@/lib/schemas';
 import { SCHEMA_VERSION } from '@/lib/schemas';
 import { DEFAULT_PLATE_SETUP } from '@/lib/plates';
+import { DEFAULT_STRIPE_SETUP } from '@/lib/stripes';
 
 export function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -298,6 +299,7 @@ export function createDefaultBuild(vehicle: Vehicle, name = 'Untitled build'): B
     },
     stance: { ...STOCK_STANCE },
     plateSetup: { ...DEFAULT_PLATE_SETUP },
+    stripes: { ...DEFAULT_STRIPE_SETUP },
     annotations: [],
     fabricationRecords: {},
     cameraState: null,

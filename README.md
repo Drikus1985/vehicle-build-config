@@ -44,6 +44,10 @@ Nova-specific configurator features:
   characters) rendered onto generated front & rear plates in four generic colourways,
   replacing the model's baked plates. Purely decorative; remove via the "Licence plates"
   part. Driven by `plateMounts` in the asset manifest, so any vehicle can opt in.
+- **Racing stripes**: single centre, twin rally, or side rocker stripes with colour and
+  width controls (Paint tab). Painted in the shader from car-space geometry — no decal
+  textures needed — over the zones listed in the manifest's `stripeZones`, so stripes
+  follow the hood, scoops, roof and trunk and skip glass and trim automatically.
 
 ### UV-mapped variant
 

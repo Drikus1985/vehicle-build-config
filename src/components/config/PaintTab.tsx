@@ -2,8 +2,15 @@ import { useEffect, useState } from 'react';
 import { FACTORY_PALETTES, getManifestForVehicle } from '@/lib/catalog';
 import { repositories } from '@/lib/persistence/idb';
 import type { SavedColor } from '@/lib/persistence/repositories';
-import { resetPaintToStock, setGlassTint, setPaintZone, setPlateSetup } from '@/state/buildActions';
+import {
+  resetPaintToStock,
+  setGlassTint,
+  setPaintZone,
+  setPlateSetup,
+  setStripes,
+} from '@/state/buildActions';
 import { PLATE_STYLES, PLATE_TEXT_MAX } from '@/lib/plates';
+import { STRIPE_COLORS, STRIPE_STYLES } from '@/lib/stripes';
 import { useBuildStore } from '@/state/buildStore';
 import { useUiStore } from '@/state/uiStore';
 
@@ -203,6 +210,73 @@ export function PaintTab() {
           onChange={setGlassTint}
         />
       </div>
+
+      {manifest.stripeZones.length > 0 && (
+        <div>
+          <span className="field-label">Racing stripes</span>
+          <div className="flex flex-wrap gap-1">
+            {STRIPE_STYLES.map((style) => (
+              <button
+                key={style.id}
+                className={`btn !py-1 ${build.stripes.styleId === style.id ? 'btn-on' : ''}`}
+                aria-pressed={build.stripes.styleId === style.id}
+                title={style.description}
+                onClick={() => setStripes({ styleId: style.id })}
+              >
+                {style.label}
+              </button>
+            ))}
+          </div>
+          {build.stripes.styleId !== 'none' && (
+            <>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                {STRIPE_COLORS.map((c) => (
+                  <button
+                    key={c.hex}
+                    className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${
+                      build.stripes.colorHex.toLowerCase() === c.hex.toLowerCase()
+                        ? 'border-accent-500'
+                        : 'border-graphite-600/60'
+                    }`}
+                    style={{ background: c.hex }}
+                    title={c.name}
+                    aria-label={`Stripe colour ${c.name}`}
+                    onClick={() => setStripes({ colorHex: c.hex })}
+                  />
+                ))}
+                <input
+                  type="color"
+                  className="h-6 w-8 cursor-pointer rounded border border-graphite-600 bg-graphite-850"
+                  value={build.stripes.colorHex}
+                  aria-label="Custom stripe colour"
+                  onChange={(e) => setStripes({ colorHex: e.target.value })}
+                />
+              </div>
+              <label className="mt-1.5 block">
+                <span className="flex justify-between text-[11px] text-graphite-300">
+                  Stripe width
+                  <span className="font-mono text-graphite-400">
+                    {Math.round(build.stripes.widthScale * 100)}%
+                  </span>
+                </span>
+                <input
+                  type="range"
+                  className="range-base"
+                  min={0.5}
+                  max={1.5}
+                  step={0.05}
+                  value={build.stripes.widthScale}
+                  onChange={(e) => setStripes({ widthScale: Number(e.target.value) })}
+                />
+              </label>
+            </>
+          )}
+          <p className="mt-1 text-[10px] text-graphite-400">
+            Painted in the shader over the body and hood zones — follows scoops and panels, no decal
+            file needed.
+          </p>
+        </div>
+      )}
 
       {manifest.plateMounts.length > 0 && (
         <div>

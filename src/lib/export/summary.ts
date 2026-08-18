@@ -2,6 +2,7 @@ import { getManifestForVehicle, getPart, getVariant, getVehicle } from '@/lib/ca
 import { checkAxleFitment, computeTyreSpec } from '@/lib/fitment/tyres';
 import { statusMeta } from '@/lib/titanforge';
 import { getPlateStyle } from '@/lib/plates';
+import { STRIPE_STYLES } from '@/lib/stripes';
 import type { Build } from '@/lib/schemas';
 
 function esc(s: string): string {
@@ -95,6 +96,13 @@ ${removedRows ? `<p><strong>Removed:</strong></p><ul>${removedRows}</ul>` : ''}
 Camber F/R: ${build.stance.camberFrontDeg}° / ${build.stance.camberRearDeg}° ·
 Track F/R: +${build.stance.trackWidthFrontMm} / +${build.stance.trackWidthRearMm} mm</p>
 
+${
+  manifest && manifest.stripeZones.length > 0 && build.stripes.styleId !== 'none'
+    ? `<h2>Racing stripes</h2>
+<p>${esc(STRIPE_STYLES.find((s) => s.id === build.stripes.styleId)?.label ?? build.stripes.styleId)} — <span class="swatch" style="background:${esc(build.stripes.colorHex)}"></span> ${esc(build.stripes.colorHex)} at ${Math.round(build.stripes.widthScale * 100)}% width</p>
+`
+    : ''
+}
 ${
   manifest && manifest.plateMounts.length > 0
     ? `<h2>Numberplate</h2>

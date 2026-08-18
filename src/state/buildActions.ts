@@ -12,6 +12,7 @@ import type {
   PaintZoneSetting,
   PlateSetup,
   Stance,
+  StripeSetup,
 } from '@/lib/schemas';
 import { sanitizePlateText } from '@/lib/plates';
 import { useBuildStore } from './buildStore';
@@ -222,6 +223,14 @@ export function setPlateSetup(patch: Partial<PlateSetup>): void {
       ...patch,
       ...(patch.text !== undefined ? { text: sanitizePlateText(patch.text) } : {}),
     };
+  });
+}
+
+// --- Racing stripes ---------------------------------------------------------
+
+export function setStripes(patch: Partial<StripeSetup>): void {
+  update((draft) => {
+    draft.stripes = { ...draft.stripes, ...patch };
   });
 }
 

@@ -11,6 +11,7 @@ import { useUiStore } from '@/state/uiStore';
 import { addAnnotation } from '@/state/buildActions';
 import { Wheels } from './Wheels';
 import { GeneratedPlates } from './PlateMeshes';
+import { applyStripeShader, hasStripeShader, updateStripeUniforms } from './stripesShader';
 
 const ACCENT = new THREE.Color('#f59e0b');
 const HOVER = new THREE.Color('#f5cf8b');
@@ -108,6 +109,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
             clearcoat: zone.defaultFinish.clearcoat,
             side: THREE.DoubleSide,
           });
+          if (manifest.stripeZones.includes(zone.id)) applyStripeShader(material);
         } else {
           const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
           material =
@@ -198,9 +200,11 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
         if (entry.zoneId === 'glass') {
           material.color.lerp(new THREE.Color('#090b0d'), build.glassTint);
         }
+        // Racing stripes (shader-painted on stripe-eligible zones).
+        if (hasStripeShader(material)) updateStripeUniforms(material, build.stripes);
       });
     }
-  }, [nodes, build.paint, build.glassTint, installedByPart]);
+  }, [nodes, build.paint, build.glassTint, build.stripes, installedByPart]);
 
   // Baked plate meshes are replaced by generated plates (PlateMeshes).
   const replacedPlateNodes = useMemo(

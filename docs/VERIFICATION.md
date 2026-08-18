@@ -3,6 +3,20 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Racing stripes (2026-08-18)
+
+- Shader extension (onBeforeCompile on the zone materials the manifest lists in
+  `stripeZones`) computes stripe masks from car-space position + normal: single centre and
+  twin rally cover top surfaces plus upper nose/tail faces; side rockers band the lower
+  body sides between the wheel arches. No UVs or decal textures required; stripes follow
+  the cowl scoops and stay glued through stance/isolate/explode. Uniform-driven, so style/
+  colour/width changes never recompile shaders; all stripe materials share one program.
+- `stripes` on the Build (style, colour, width 50-150%), zod-defaulted for legacy builds;
+  undoable action; Paint tab UI; printable summary line. Nova enables zones body+hood;
+  the TF-100 opts out (it has a physical stripe part).
+- 86/86 unit tests (style indices, zone validity, legacy parsing, range rejection, undo);
+  5/5 e2e; all three styles verified visually with zero console errors.
+
 ## Custom numberplate (2026-08-18)
 
 - Generic `plateMounts` manifest metadata (position/size/rotation measured from the baked

@@ -374,6 +374,7 @@ export const TF100_MANIFEST: AssetManifest = {
     },
   ],
   plateMounts: [],
+  stripeZones: [],
   cameraTargets: {
     defaultTarget: [0, 0.75, 0],
     defaultPosition: [4.2, 1.9, 5.2],
