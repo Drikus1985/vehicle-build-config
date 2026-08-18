@@ -12,3 +12,4 @@ test-results/
 # Purchased stock assets — licence does not allow public redistribution.
 # Place locally; see README "Adding a vehicle" / Nova notes.
 public/assets/vehicles/nova-1970.glb
+public/assets/vehicles/nova-1970-uv.glb

@@ -3,6 +3,19 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## UV-mapped asset conversion (2026-08-18)
+
+- Seller's UV package (OBJ/MTL/FBX/MAX + UV template PNG, no glTF) fetched from the user's
+  Google Drive and converted via `scripts/convert-nova-uv-to-glb.mjs`: cm/Z-up/nose--Y →
+  m/Y-up/nose-+Z (verified against the original GLB's wheel coordinates), vertex welding
+  (106 MB → 31.8 MB), Phong→PBR material conversion.
+- 117 named nodes: all 115 original names byte-identical, plus `Object001`/`Object002`
+  (window glass split by the UV work). UVs present on every node except the `text_396`/
+  `text_397` badge scripts. Bounding box identical to the original asset.
+- Rendered in-app via temporary swap with zero console errors; original asset kept as the
+  runtime file (nicer KHR transmission glass), UV variant staged as `nova-1970-uv.glb`
+  (gitignored, Standard License) for upcoming texture features.
+
 ## Nova customisation upgrades (2026-08-16)
 
 - **Independent paint zones** for Hood, Front/Rear bumper, Grille and Trim mouldings (plus
