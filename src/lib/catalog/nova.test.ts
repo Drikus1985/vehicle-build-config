@@ -23,15 +23,21 @@ const ADDONS_GLB_PATH = resolve(process.cwd(), 'public/assets/vehicles/nova-addo
 // UV-mapped liverySource asset, absent from the original GLB.
 const UV_ONLY_NODES = new Set(['Object001', 'Object002']);
 
-function glbNodeNames(path: string): Set<string> {
+function glbJson(path: string): {
+  nodes?: { name?: string; mesh?: number }[];
+  extensionsRequired?: string[];
+} {
   const buffer = readFileSync(path);
   expect(buffer.toString('ascii', 0, 4)).toBe('glTF');
   const jsonLength = buffer.readUInt32LE(12);
-  const json = JSON.parse(buffer.toString('utf8', 20, 20 + jsonLength)) as {
-    nodes?: { name?: string; mesh?: number }[];
-  };
+  return JSON.parse(buffer.toString('utf8', 20, 20 + jsonLength)) as ReturnType<typeof glbJson>;
+}
+
+function glbNodeNames(path: string): Set<string> {
   // Only mesh-bearing nodes matter to the manifest; container groups don't.
-  return new Set((json.nodes ?? []).filter((n) => n.mesh !== undefined).map((n) => n.name ?? ''));
+  return new Set(
+    (glbJson(path).nodes ?? []).filter((n) => n.mesh !== undefined).map((n) => n.name ?? ''),
+  );
 }
 
 describe('Nova catalogue data', () => {
@@ -128,6 +134,24 @@ describe('Nova catalogue data', () => {
       expect(mapped.has(name), `UV GLB node ${name} unmapped in manifest`).toBe(true);
     }
   });
+
+  // Manifest compression metadata must match the installed files: when the
+  // manifest says draco, the GLB must require KHR_draco_mesh_compression (and
+  // vice versa) so the loader's expectations stay truthful.
+  it.skipIf(!existsSync(GLB_PATH) || !existsSync(UV_GLB_PATH))(
+    'compression metadata matches the local asset files',
+    () => {
+      for (const [source, path] of [
+        [NOVA_MANIFEST.source, GLB_PATH],
+        [NOVA_MANIFEST.liverySource!, UV_GLB_PATH],
+      ] as const) {
+        const isDraco = (glbJson(path).extensionsRequired ?? []).includes(
+          'KHR_draco_mesh_compression',
+        );
+        expect(isDraco, path).toBe(source.compression === 'draco');
+      }
+    },
+  );
 
   it('a default Nova build exposes every independent paint zone', () => {
     const vehicle = getVehicle('veh-nova-1970')!;

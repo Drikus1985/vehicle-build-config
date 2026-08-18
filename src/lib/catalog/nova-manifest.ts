@@ -15,11 +15,14 @@ import type { AssetManifest } from '@/lib/schemas';
 export const NOVA_MANIFEST: AssetManifest = {
   id: 'manifest-nova-1970',
   schemaVersion: 1,
+  // Draco-compressed via scripts/compress-glb.mjs (32.3 MB → 2.8 MB); the
+  // loader pulls the local decoder from /public/draco only when needed, so an
+  // uncompressed copy of the file works here too.
   source: {
     type: 'gltf',
     uri: '/assets/vehicles/nova-1970.glb',
-    sizeBytes: 32257880,
-    compression: 'none',
+    sizeBytes: 2819212,
+    compression: 'draco',
   },
   // UV-mapped variant of the same purchased asset (converted from the
   // seller's UV update via scripts/convert-nova-uv-to-glb.mjs — same licence,
@@ -27,8 +30,8 @@ export const NOVA_MANIFEST: AssetManifest = {
   liverySource: {
     type: 'gltf',
     uri: '/assets/vehicles/nova-1970-uv.glb',
-    sizeBytes: 33297664,
-    compression: 'none',
+    sizeBytes: 2981212,
+    compression: 'draco',
   },
   // Project-original add-on parts (scoops, spoilers) fitted to this vehicle;
   // CC0 and committed to the repo, unlike the licensed base model.
@@ -754,10 +757,13 @@ export const NOVA_MANIFEST: AssetManifest = {
       id: 'hood',
       label: 'Hood',
       kind: 'roundel',
-      uv: [0.1928, 0.3596],
+      // The SS vent strips run nearly the full hood length either side of the
+      // centreline, so the disc sits offset to the driver's side (car x=0.42,
+      // z=1.55) — the classic offset hood number — clear of the strips.
+      uv: [0.1928, 0.2802],
       rightUvPerM: [0, -0.189],
       upUvPerM: [0.1973, 0],
-      sizeM: 0.55,
+      sizeM: 0.48,
     },
     {
       id: 'roof',

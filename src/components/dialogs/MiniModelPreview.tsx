@@ -34,8 +34,15 @@ export function MiniModelPreview({ url, kind }: { url: string; kind: 'gltf' | 's
         let object: import('three').Object3D;
         if (kind === 'gltf') {
           const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
-          const gltf = await new GLTFLoader().loadAsync(url);
-          object = gltf.scene;
+          const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
+          // Locally hosted decoder so Draco-compressed imports preview too.
+          const dracoLoader = new DRACOLoader().setDecoderPath('/draco/');
+          const loader = new GLTFLoader().setDRACOLoader(dracoLoader);
+          try {
+            object = (await loader.loadAsync(url)).scene;
+          } finally {
+            dracoLoader.dispose();
+          }
         } else {
           const { STLLoader } = await import('three/addons/loaders/STLLoader.js');
           const geometry = await new STLLoader().loadAsync(url);

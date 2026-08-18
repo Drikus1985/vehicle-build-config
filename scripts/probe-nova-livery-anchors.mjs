@@ -95,7 +95,17 @@ const gltf = await new Promise((resolve, reject) =>
     resolve,
     reject,
   ),
-);
+).catch((err) => {
+  if (String(err).includes('DRACO')) {
+    console.error(
+      'The GLB is Draco-compressed; this probe reads geometry directly. Re-run',
+      'scripts/convert-nova-uv-to-glb.mjs to get an uncompressed file, probe it,',
+      'then compress with npm run compress:nova.',
+    );
+    process.exit(1);
+  }
+  throw err;
+});
 gltf.scene.updateMatrixWorld(true);
 
 function meshesOf(name) {
@@ -155,7 +165,7 @@ const ANCHORS = {
   'quarter-r': [-0.93, 0.84, -1.8],
   'fender-l': [0.93, 0.8, 2.0],
   'fender-r': [-0.93, 0.8, 2.0],
-  hood: [0, 1.0, 1.55],
+  hood: [0.42, 1.0, 1.55],
   roof: [0, 1.44, -0.2],
   trunk: [0, 1.09, -1.85],
 };

@@ -67,6 +67,25 @@ Nova-specific configurator features:
   (`liveryPanels` in the manifest), so bands wrap continuously over panel shoulders
   and both sides always match.
 
+### Draco compression
+
+Both Nova assets should be Draco-compressed for fast loads (32 MB → 2.8 MB, ~91 %
+smaller):
+
+```
+npm run compress:nova     # compresses both GLBs in place
+```
+
+The script (`scripts/compress-glb.mjs`) encodes mesh primitives with
+`KHR_draco_mesh_compression` (14-bit positions ≈ 0.3 mm, 10-bit normals, 12-bit UVs)
+and passes every material extension through untouched, so node names, the manifest
+mapping and the KHR transmission glass all survive. The decoder is served locally
+from `public/draco/` (Google Draco, Apache-2.0, copied from the three.js
+distribution) — no CDN involved — and is only fetched when an asset actually uses the
+extension, so uncompressed copies of the files keep working too. Run the compression
+**after** `convert-nova-uv-to-glb.mjs`/`probe-nova-livery-anchors.mjs`, which read
+uncompressed geometry.
+
 ### UV-mapped variant
 
 The seller's UV-mapped update ships as OBJ/FBX/MAX (no glTF). Convert it with:

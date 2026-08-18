@@ -74,7 +74,9 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   const baseUri =
     liveryAvailable && manifest.liverySource ? manifest.liverySource.uri : manifest.source.uri;
   const assetUrls = manifest.addonSource ? [baseUri, manifest.addonSource.uri] : [baseUri];
-  const gltfs = useGLTF(assetUrls);
+  // Second arg: locally hosted Draco decoder (no CDN — the app is
+  // local-first), used only for assets that actually carry the extension.
+  const gltfs = useGLTF(assetUrls, '/draco/');
   const mainScene = gltfs[0]!.scene;
   const addonScene = gltfs[1]?.scene ?? null;
   const bodyRef = useRef<THREE.Group>(null);

@@ -3,6 +3,25 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Draco compression (2026-08-18)
+
+- `scripts/compress-glb.mjs` (gltf-transform + draco3dgltf, ALL_EXTENSIONS registered
+  so the original asset's KHR transmission/specular/ior glass passes through):
+  nova-1970.glb 30.8 MB → 2.7 MB, nova-1970-uv.glb 31.8 MB → 2.8 MB (9 % of
+  original). Quantization 14-bit position / 10-bit normal / 12-bit UV.
+- Decoder hosted locally at `public/draco/` (Apache-2.0, from the three.js
+  distribution) and wired into the vehicle loader (`useGLTF(urls, '/draco/')`), the
+  imported-wheel loader and the import preview — fetched only when a file requires
+  the extension, so uncompressed assets keep loading identically.
+- New test: manifest `compression` metadata must match `extensionsRequired` in the
+  local files (skips when assets absent). Node-name JSON parsing (and therefore the
+  GLB↔manifest cross-checks) is unaffected by Draco.
+- Verified visually with the full appearance stack on the compressed assets — twin
+  rally stripes (crisp mask edges, no quantization artefacts), two-tone scheme,
+  roundels, lettering, patina at 35 %, plates — zero console errors; 104/104 unit
+  tests, 5/5 e2e. Hood roundel anchor moved to the classic driver's-side offset
+  position, clear of the SS hood vent strips (verified from the top view).
+
 ## Patina & weathering (2026-08-18)
 
 - Seeded procedural weathering drawn onto the livery canvas above all graphics:
