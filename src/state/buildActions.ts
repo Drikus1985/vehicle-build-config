@@ -239,12 +239,16 @@ export function setStripes(patch: Partial<StripeSetup>): void {
 // --- Livery -----------------------------------------------------------------
 
 export interface LiveryPatch {
+  scheme?: Partial<LiverySetup['scheme']>;
   roundels?: Partial<LiverySetup['roundels']>;
   lettering?: Partial<LiverySetup['lettering']>;
 }
 
 export function setLivery(patch: LiveryPatch): void {
   update((draft) => {
+    if (patch.scheme) {
+      draft.livery.scheme = { ...draft.livery.scheme, ...patch.scheme };
+    }
     if (patch.roundels) {
       draft.livery.roundels = {
         ...draft.livery.roundels,

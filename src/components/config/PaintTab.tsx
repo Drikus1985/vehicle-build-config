@@ -14,6 +14,7 @@ import {
 import { PLATE_STYLES, PLATE_TEXT_MAX } from '@/lib/plates';
 import { STRIPE_COLORS, STRIPE_STYLES } from '@/lib/stripes';
 import { LIVERY_COLORS, LIVERY_NUMBER_MAX, LIVERY_TEXT_MAX } from '@/lib/livery';
+import { LIVERY_SCHEMES } from '@/lib/liverySchemes';
 import { useLiveryAssetStatus } from '@/three/liveryAsset';
 import { useBuildStore } from '@/state/buildStore';
 import { useUiStore } from '@/state/uiStore';
@@ -334,7 +335,48 @@ export function PaintTab() {
             </p>
           ) : (
             <>
-              <div className="mt-1 flex items-end gap-2">
+              {manifest.liveryPanels.length > 0 && (
+                <div className="mt-1">
+                  <span className="text-[11px] text-graphite-300">Scheme</span>
+                  <div className="mt-0.5 flex flex-wrap gap-1">
+                    <button
+                      className={`btn !py-1 ${build.livery.scheme.id === 'none' ? 'btn-on' : ''}`}
+                      aria-pressed={build.livery.scheme.id === 'none'}
+                      onClick={() => setLivery({ scheme: { id: 'none' } })}
+                    >
+                      None
+                    </button>
+                    {LIVERY_SCHEMES.map((scheme) => (
+                      <button
+                        key={scheme.id}
+                        className={`btn !py-1 ${
+                          build.livery.scheme.id === scheme.id ? 'btn-on' : ''
+                        }`}
+                        aria-pressed={build.livery.scheme.id === scheme.id}
+                        title={scheme.description}
+                        onClick={() => setLivery({ scheme: { id: scheme.id } })}
+                      >
+                        {scheme.label}
+                      </button>
+                    ))}
+                  </div>
+                  {build.livery.scheme.id !== 'none' && (
+                    <>
+                      <LiveryColorRow
+                        label="Scheme"
+                        value={build.livery.scheme.primaryHex}
+                        onPick={(hex) => setLivery({ scheme: { primaryHex: hex } })}
+                      />
+                      <LiveryColorRow
+                        label="Keyline"
+                        value={build.livery.scheme.accentHex}
+                        onPick={(hex) => setLivery({ scheme: { accentHex: hex } })}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+              <div className="mt-2 flex items-end gap-2">
                 <label className="block">
                   <span className="text-[11px] text-graphite-300">Racing number</span>
                   <input
@@ -454,8 +496,9 @@ export function PaintTab() {
                 )}
               </div>
               <p className="mt-1 text-[10px] text-graphite-400">
-                Roundels and lettering are drawn onto the vehicle&apos;s UV atlas at measured panel
-                anchors — they follow the doors, hood, roof and quarters exactly.
+                Schemes, roundels and lettering are drawn onto the vehicle&apos;s UV atlas through
+                panel frames measured from this asset&apos;s geometry — decals sit on top of the
+                scheme, which sits on top of paint and stripes.
               </p>
             </>
           )}

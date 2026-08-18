@@ -161,6 +161,7 @@ const ANCHORS = {
 };
 
 const AXIS = { x: 0, y: 1, z: 2 };
+const results = new Map();
 for (const probe of PROBES) {
   const target = new THREE.Vector3(...probe.p);
   let best = null; // outermost vertex within radius of the probe point
@@ -209,6 +210,38 @@ for (const probe of PROBES) {
       uv: anchorUv.map(fmt),
       rightUvPerM: right.map(fmt),
       upUvPerM: up.map(fmt),
+    }),
+  );
+  results.set(probe.id, { probe, best, right, up });
+}
+
+// --- Panel frames (manifest `liveryPanels`) --------------------------------
+// One affine car-space→UV frame per island, anchored at the probed vertex.
+// Each body side (fender_f + door + fender_b) is a single affine island —
+// verified by predicting the quarter/fender vertex UVs from the door frame
+// (errors < 0.001 UV). Pre-designed schemes project car-space polygons
+// through these frames.
+console.log('\nliveryPanels:');
+const PANEL_FROM_PROBE = {
+  'side-l': 'door-l',
+  'side-r': 'door-r',
+  hood: 'hood',
+  roof: 'roof',
+  trunk: 'trunk',
+};
+for (const [panelId, probeId] of Object.entries(PANEL_FROM_PROBE)) {
+  const r = results.get(probeId);
+  if (!r) continue;
+  const fmt = (n) => Number(n.toFixed(4));
+  console.log(
+    JSON.stringify({
+      id: panelId,
+      origin: r.best.pos.toArray().map(fmt),
+      rightDir: r.probe.right,
+      upDir: r.probe.up,
+      uv: r.best.uv.map(fmt),
+      rightUvPerM: r.right.map(fmt),
+      upUvPerM: r.up.map(fmt),
     }),
   );
 }

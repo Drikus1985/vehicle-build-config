@@ -5,6 +5,7 @@
  * Liveries need the manifest's UV-mapped `liverySource` asset at runtime.
  */
 import type { LiverySetup } from '@/lib/schemas';
+import { getLiveryScheme } from '@/lib/liverySchemes';
 
 export const LIVERY_NUMBER_MAX = 3;
 export const LIVERY_TEXT_MAX = 18;
@@ -19,6 +20,11 @@ export const LIVERY_COLORS = [
 ];
 
 export const DEFAULT_LIVERY_SETUP: LiverySetup = {
+  scheme: {
+    id: 'none',
+    primaryHex: '#f2f1ec',
+    accentHex: '#141519',
+  },
   roundels: {
     anchorIds: [],
     number: '11',
@@ -54,6 +60,7 @@ export function sanitizeLetteringText(raw: string): string {
 /** True when the setup draws anything at all. */
 export function liveryHasContent(livery: LiverySetup): boolean {
   return (
+    getLiveryScheme(livery.scheme.id) !== undefined ||
     (livery.roundels.anchorIds.length > 0 && livery.roundels.number.length > 0) ||
     (livery.lettering.anchorIds.length > 0 && livery.lettering.text.trim().length > 0)
   );

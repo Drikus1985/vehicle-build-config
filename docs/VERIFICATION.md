@@ -3,6 +3,23 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Pre-designed livery schemes (2026-08-18)
+
+- Four full-car schemes (Side spear, Hockey stick, Lower two-tone, Nose & tail bands)
+  with configurable scheme + keyline colours, drawn under roundels/lettering on the
+  livery canvas. Shapes are car-space polygons projected through `liveryPanels` — one
+  affine car-space→UV frame per atlas island, emitted by the probe script. Each body
+  side proved to be a single affine island (door frame predicts the quarter and fender
+  vertex UVs to < 0.001 UV), so one polygon per side covers fender+door+quarter, and
+  shapes sharing z ranges wrap continuously over shoulders (verified: the tail band
+  lines up across trunk lid and quarters, the nose band across hood and fenders).
+- Accent polygons draw before primaries, giving clean keyline borders without stroke
+  seams. Unknown scheme ids draw nothing and count as no livery content.
+- `scheme` on the Build (zod-defaulted for saves that predate it), undoable, printable
+  summary line. 98/98 unit tests (scheme/panel validity, frame regression against
+  independently probed vertices, legacy parsing, colour rejection, undo); 5/5 e2e; all
+  four schemes verified visually (left/¾ front/¾ rear/top) with zero console errors.
+
 ## UV livery system (2026-08-18)
 
 - Racing roundels (number, disc/ring colours, size) on doors/hood/roof/trunk and

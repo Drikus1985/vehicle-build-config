@@ -204,6 +204,24 @@ export const liveryAnchorSchema = z.object({
 });
 export type LiveryAnchor = z.infer<typeof liveryAnchorSchema>;
 
+/**
+ * An affine car-space→UV frame for one atlas island (a whole body side, the
+ * hood, roof or trunk). Pre-designed livery schemes author their shapes as
+ * polygons in car-space metres and project them through these frames:
+ * uv(p) = uv + rightUvPerM·((p−origin)·rightDir) + upUvPerM·((p−origin)·upDir).
+ * Derived from the asset geometry by scripts/probe-nova-livery-anchors.mjs.
+ */
+export const liveryPanelSchema = z.object({
+  id: z.string().min(1),
+  origin: vec3Schema,
+  rightDir: vec3Schema,
+  upDir: vec3Schema,
+  uv: z.tuple([z.number(), z.number()]),
+  rightUvPerM: z.tuple([z.number(), z.number()]),
+  upUvPerM: z.tuple([z.number(), z.number()]),
+});
+export type LiveryPanel = z.infer<typeof liveryPanelSchema>;
+
 export const assetManifestSchema = z.object({
   id: z.string().min(1),
   schemaVersion: z.number().int().default(SCHEMA_VERSION),
@@ -244,6 +262,8 @@ export const assetManifestSchema = z.object({
   liveryZones: z.array(z.string()).default([]),
   /** Decal placements on the livery atlas (empty = no livery support). */
   liveryAnchors: z.array(liveryAnchorSchema).default([]),
+  /** Island frames for pre-designed schemes (empty = decals only). */
+  liveryPanels: z.array(liveryPanelSchema).default([]),
   cameraTargets: z.object({
     defaultTarget: vec3Schema,
     defaultPosition: vec3Schema,
@@ -473,6 +493,20 @@ const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
 /** Livery graphics drawn onto the UV atlas (anchor ids from the manifest). */
 export const liverySetupSchema = z.object({
+  /** Pre-designed full-car scheme ('none' or an id from LIVERY_SCHEMES). */
+  scheme: z
+    .object({
+      id: z.string().max(40).default('none'),
+      primaryHex: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .default('#f2f1ec'),
+      accentHex: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .default('#141519'),
+    })
+    .default({}),
   roundels: z
     .object({
       anchorIds: z.array(z.string()).default([]),

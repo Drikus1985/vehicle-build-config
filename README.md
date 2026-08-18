@@ -54,6 +54,12 @@ Nova-specific configurator features:
   onto the asset's UV atlas at panel anchors measured from the geometry
   (`scripts/probe-nova-livery-anchors.mjs`), composited over paint and stripes in the
   shader. When `nova-1970-uv.glb` is absent the Paint tab says so instead of pretending.
+- **Pre-designed livery schemes**: Side spear, Hockey stick, Lower two-tone, and
+  Nose &amp; tail bands — full-car designs with a scheme colour and a keyline colour,
+  layered under the roundels/lettering. Schemes are authored as car-space polygons
+  (`src/lib/liverySchemes.ts`) and projected through per-island UV frames
+  (`liveryPanels` in the manifest), so bands wrap continuously over panel shoulders
+  and both sides always match.
 
 ### UV-mapped variant
 

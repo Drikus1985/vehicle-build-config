@@ -9,7 +9,8 @@
  * setTransform — this keeps canvas font sizes comfortably above 1px, which
  * some engines rasterise poorly.
  */
-import type { AssetManifest, LiveryAnchor, LiverySetup } from '@/lib/schemas';
+import type { AssetManifest, LiveryAnchor, LiveryPanel, LiverySetup } from '@/lib/schemas';
+import { getLiveryScheme, type SchemePoint } from '@/lib/liverySchemes';
 
 export const LIVERY_TEXTURE_SIZE = 2048;
 
@@ -69,6 +70,43 @@ function drawLettering(
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+/** Project a car-space point through an island frame to canvas pixels. */
+function projectToCanvas(panel: LiveryPanel, pt: SchemePoint, size: number): [number, number] {
+  const d = [pt[0] - panel.origin[0], pt[1] - panel.origin[1], pt[2] - panel.origin[2]];
+  const r = d[0]! * panel.rightDir[0] + d[1]! * panel.rightDir[1] + d[2]! * panel.rightDir[2];
+  const u = d[0]! * panel.upDir[0] + d[1]! * panel.upDir[1] + d[2]! * panel.upDir[2];
+  const uvX = panel.uv[0] + panel.rightUvPerM[0] * r + panel.upUvPerM[0] * u;
+  const uvY = panel.uv[1] + panel.rightUvPerM[1] * r + panel.upUvPerM[1] * u;
+  return [uvX * size, (1 - uvY) * size];
+}
+
+/** Pre-designed scheme polygons — drawn first so decals sit on top. */
+function drawScheme(
+  ctx: CanvasRenderingContext2D,
+  manifest: AssetManifest,
+  setup: LiverySetup['scheme'],
+  size: number,
+) {
+  const scheme = getLiveryScheme(setup.id);
+  if (!scheme || manifest.liveryPanels.length === 0) return;
+  const panels = new Map(manifest.liveryPanels.map((p) => [p.id, p]));
+  for (const shape of scheme.shapes) {
+    ctx.fillStyle = shape.fill === 'primary' ? setup.primaryHex : setup.accentHex;
+    for (const panelId of shape.panels) {
+      const panel = panels.get(panelId);
+      if (!panel) continue;
+      ctx.beginPath();
+      shape.pts.forEach((pt, i) => {
+        const [x, y] = projectToCanvas(panel, pt, size);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
 /** Repaint the whole livery canvas from the build's livery setup. */
 export function drawLiveryTexture(
   canvas: HTMLCanvasElement,
@@ -80,6 +118,7 @@ export function drawLiveryTexture(
   const size = canvas.width;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, size, size);
+  drawScheme(ctx, manifest, livery.scheme, size);
   const anchors = new Map(manifest.liveryAnchors.map((a) => [a.id, a]));
   for (const id of livery.roundels.anchorIds) {
     const anchor = anchors.get(id);

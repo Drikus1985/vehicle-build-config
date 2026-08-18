@@ -4,6 +4,7 @@ import { statusMeta } from '@/lib/titanforge';
 import { getPlateStyle } from '@/lib/plates';
 import { STRIPE_STYLES } from '@/lib/stripes';
 import { liveryHasContent } from '@/lib/livery';
+import { getLiveryScheme } from '@/lib/liverySchemes';
 import type { Build } from '@/lib/schemas';
 
 function esc(s: string): string {
@@ -108,6 +109,9 @@ ${
   manifest && manifest.liveryAnchors.length > 0 && liveryHasContent(build.livery)
     ? `<h2>Livery</h2>
 <p>${[
+        getLiveryScheme(build.livery.scheme.id)
+          ? `${esc(getLiveryScheme(build.livery.scheme.id)!.label)} scheme — <span class="swatch" style="background:${esc(build.livery.scheme.primaryHex)}"></span> ${esc(build.livery.scheme.primaryHex)} / <span class="swatch" style="background:${esc(build.livery.scheme.accentHex)}"></span> ${esc(build.livery.scheme.accentHex)}`
+          : '',
         build.livery.roundels.anchorIds.length > 0 && build.livery.roundels.number
           ? `Roundel #${esc(build.livery.roundels.number)} on ${esc(
               build.livery.roundels.anchorIds

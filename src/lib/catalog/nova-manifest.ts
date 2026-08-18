@@ -677,6 +677,57 @@ export const NOVA_MANIFEST: AssetManifest = {
   stripeZones: ['body', 'hood'],
   // Livery graphics (roundels, lettering) drawn on the liverySource UV atlas.
   liveryZones: ['body', 'hood'],
+  // Island frames for pre-designed schemes: one affine car-space→UV map per
+  // atlas island (each full body side is a single island — verified by
+  // cross-predicting fender/quarter vertex UVs from the door frame, errors
+  // < 0.001 UV). Emitted by scripts/probe-nova-livery-anchors.mjs.
+  liveryPanels: [
+    {
+      id: 'side-l',
+      origin: [0.9343, 0.7214, 0.3057],
+      rightDir: [0, 0, -1],
+      upDir: [0, 1, 0],
+      uv: [0.4326, 0.628],
+      rightUvPerM: [0.2029, 0.0003],
+      upUvPerM: [-0.0005, 0.2015],
+    },
+    {
+      id: 'side-r',
+      origin: [-0.9343, 0.7214, 0.3057],
+      rightDir: [0, 0, 1],
+      upDir: [0, 1, 0],
+      uv: [0.5617, 0.8562],
+      rightUvPerM: [0.2029, -0.0003],
+      upUvPerM: [0.0005, 0.2015],
+    },
+    {
+      id: 'hood',
+      origin: [0, 0.98, 1.1892],
+      rightDir: [1, 0, 0],
+      upDir: [0, 0, -1],
+      uv: [0.264, 0.3596],
+      rightUvPerM: [0, -0.189],
+      upUvPerM: [0.1973, 0],
+    },
+    {
+      id: 'roof',
+      origin: [0, 1.4412, -0.3232],
+      rightDir: [1, 0, 0],
+      upDir: [0, 0, -1],
+      uv: [0.5703, 0.3596],
+      rightUvPerM: [0, -0.2038],
+      upUvPerM: [0.203, 0],
+    },
+    {
+      id: 'trunk',
+      origin: [0, 1.1194, -1.6397],
+      rightDir: [-1, 0, 0],
+      upDir: [0, 0, 1],
+      uv: [0.8369, 0.3596],
+      rightUvPerM: [0, 0.2018],
+      upUvPerM: [-0.195, 0],
+    },
+  ],
   // Anchor UVs + local UV-per-metre frames measured from the UV asset via
   // scripts/probe-nova-livery-anchors.mjs (the atlas is a clean affine
   // orthographic unwrap at ~0.20 UV per metre on every panel).
