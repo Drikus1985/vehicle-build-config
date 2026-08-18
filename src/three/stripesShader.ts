@@ -140,3 +140,9 @@ export function updateLiveryUniforms(material: THREE.Material, on: boolean): voi
 export function hasStripeShader(material: THREE.Material): boolean {
   return material.userData[STRIPE_USERDATA_KEY] !== undefined;
 }
+
+/** True when the material was created with a real livery texture bound. */
+export function hasLiveryMap(material: THREE.Material): boolean {
+  const uniforms = material.userData[STRIPE_USERDATA_KEY] as StripeUniforms | undefined;
+  return uniforms !== undefined && uniforms.uLiveryMap.value !== getBlankTexture();
+}

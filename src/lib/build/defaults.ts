@@ -4,6 +4,7 @@ import { SCHEMA_VERSION } from '@/lib/schemas';
 import { DEFAULT_PLATE_SETUP } from '@/lib/plates';
 import { DEFAULT_STRIPE_SETUP } from '@/lib/stripes';
 import { DEFAULT_LIVERY_SETUP } from '@/lib/livery';
+import { DEFAULT_PATINA_SETUP } from '@/lib/patina';
 
 export function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -302,6 +303,7 @@ export function createDefaultBuild(vehicle: Vehicle, name = 'Untitled build'): B
     plateSetup: { ...DEFAULT_PLATE_SETUP },
     stripes: { ...DEFAULT_STRIPE_SETUP },
     livery: structuredClone(DEFAULT_LIVERY_SETUP),
+    patina: { ...DEFAULT_PATINA_SETUP },
     annotations: [],
     fabricationRecords: {},
     cameraState: null,

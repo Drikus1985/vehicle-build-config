@@ -5,6 +5,7 @@ import { getPlateStyle } from '@/lib/plates';
 import { STRIPE_STYLES } from '@/lib/stripes';
 import { liveryHasContent } from '@/lib/livery';
 import { getLiveryScheme } from '@/lib/liverySchemes';
+import { patinaActive } from '@/lib/patina';
 import type { Build } from '@/lib/schemas';
 
 function esc(s: string): string {
@@ -135,6 +136,19 @@ ${
       ]
         .filter(Boolean)
         .join(' · ')}</p>
+`
+    : ''
+}
+${
+  manifest && manifest.liveryPanels.length > 0 && patinaActive(build.patina)
+    ? `<h2>Patina</h2>
+<p>${Math.round(build.patina.amount * 100)}% — ${[
+        build.patina.fade ? 'faded paint' : '',
+        build.patina.rust ? 'surface rust' : '',
+        build.patina.grime ? 'grime' : '',
+      ]
+        .filter(Boolean)
+        .join(', ')} (pattern seed ${build.patina.seed}; cosmetic display effect)</p>
 `
     : ''
 }

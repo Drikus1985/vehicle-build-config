@@ -527,6 +527,21 @@ export const liverySetupSchema = z.object({
 });
 export type LiverySetup = z.infer<typeof liverySetupSchema>;
 
+/**
+ * Patina/weathering: a cosmetic display effect drawn procedurally onto the
+ * UV atlas (needs the manifest's liverySource + liveryPanels). Deterministic
+ * for a given seed so a saved build restores pixel-identical weathering.
+ */
+export const patinaSetupSchema = z.object({
+  /** 0 = pristine, 1 = heavily weathered. */
+  amount: z.number().min(0).max(1).default(0),
+  fade: z.boolean().default(true),
+  rust: z.boolean().default(true),
+  grime: z.boolean().default(true),
+  seed: z.number().int().min(0).default(1970),
+});
+export type PatinaSetup = z.infer<typeof patinaSetupSchema>;
+
 export const cameraStateSchema = z.object({
   position: vec3Schema,
   target: vec3Schema,
@@ -553,6 +568,8 @@ export const buildSchema = z.object({
   stripes: stripeSetupSchema.default({ styleId: 'none', colorHex: '#f2f1ec', widthScale: 1 }),
   /** Defaulted so builds saved before this field existed keep loading. */
   livery: liverySetupSchema.default({}),
+  /** Defaulted so builds saved before this field existed keep loading. */
+  patina: patinaSetupSchema.default({}),
   annotations: z.array(annotationSchema),
   fabricationRecords: z.record(z.string(), fabricationRecordSchema),
   cameraState: cameraStateSchema.nullable(),

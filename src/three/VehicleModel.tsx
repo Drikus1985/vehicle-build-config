@@ -13,6 +13,7 @@ import { Wheels } from './Wheels';
 import { GeneratedPlates } from './PlateMeshes';
 import {
   applyStripeShader,
+  hasLiveryMap,
   hasStripeShader,
   updateLiveryUniforms,
   updateStripeUniforms,
@@ -20,6 +21,7 @@ import {
 import { useLiveryAssetAvailable } from './liveryAsset';
 import { drawLiveryTexture, LIVERY_TEXTURE_SIZE } from './liveryTexture';
 import { liveryHasContent } from '@/lib/livery';
+import { patinaActive } from '@/lib/patina';
 
 const ACCENT = new THREE.Color('#f59e0b');
 const HOVER = new THREE.Color('#f5cf8b');
@@ -237,18 +239,36 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
         // Racing stripes (shader-painted on stripe-eligible zones).
         if (hasStripeShader(material)) {
           updateStripeUniforms(material, build.stripes);
-          updateLiveryUniforms(material, liveryHasContent(build.livery));
+          updateLiveryUniforms(
+            material,
+            liveryHasContent(build.livery) || patinaActive(build.patina),
+          );
+        }
+        // Weathered paint dulls: roughness up, clearcoat down with amount.
+        if (hasLiveryMap(material) && build.patina.amount > 0) {
+          material.roughness = Math.min(1, material.roughness + build.patina.amount * 0.5);
+          if (material instanceof THREE.MeshPhysicalMaterial) {
+            material.clearcoat *= 1 - build.patina.amount;
+          }
         }
       });
     }
-  }, [nodes, build.paint, build.glassTint, build.stripes, build.livery, installedByPart]);
+  }, [
+    nodes,
+    build.paint,
+    build.glassTint,
+    build.stripes,
+    build.livery,
+    build.patina,
+    installedByPart,
+  ]);
 
-  // Repaint the livery canvas whenever the livery setup changes.
+  // Repaint the livery canvas whenever the livery or patina setup changes.
   useEffect(() => {
     if (!liveryBundle) return;
-    drawLiveryTexture(liveryBundle.canvas, manifest, build.livery);
+    drawLiveryTexture(liveryBundle.canvas, manifest, build.livery, build.patina);
     liveryBundle.texture.needsUpdate = true;
-  }, [liveryBundle, manifest, build.livery]);
+  }, [liveryBundle, manifest, build.livery, build.patina]);
 
   // Baked plate meshes are replaced by generated plates (PlateMeshes).
   const replacedPlateNodes = useMemo(

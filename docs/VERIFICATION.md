@@ -3,6 +3,23 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Patina & weathering (2026-08-18)
+
+- Seeded procedural weathering drawn onto the livery canvas above all graphics:
+  chalky fade blobs (rimless radial falloff) on horizontal panels and upper sides,
+  rust blotch clusters biased low on the body and toward horizontal-panel edges,
+  grime gradient pooling along the rockers — all generated in car space through the
+  `liveryPanels` frames. Material response: roughness rises and clearcoat falls with
+  the amount on livery-mapped materials.
+- One mulberry32 PRNG seeded from the build drives all randomness, so a saved build
+  restores pixel-identical weathering; "Re-roll pattern" just picks a new seed.
+  `patina` on the Build is zod-defaulted for older saves and undoable.
+- 103/103 unit tests (legacy parsing, range/int rejection, active-state logic, PRNG
+  determinism + range, undo); 5/5 e2e; verified visually at 55 % and 90 % over stock
+  paint and over the Hockey-stick livery + roundel, zero console errors. Labelled a
+  cosmetic display effect in-app; hood/roof fade appears only via the UV atlas zones
+  (body + hood), other zones (chrome, bumpers) deliberately stay clean.
+
 ## Pre-designed livery schemes (2026-08-18)
 
 - Four full-car schemes (Side spear, Hockey stick, Lower two-tone, Nose & tail bands)

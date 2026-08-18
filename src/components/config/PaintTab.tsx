@@ -7,6 +7,7 @@ import {
   setGlassTint,
   setLivery,
   setPaintZone,
+  setPatina,
   setPlateSetup,
   setStripes,
   toggleLiveryAnchor,
@@ -499,6 +500,53 @@ export function PaintTab() {
                 Schemes, roundels and lettering are drawn onto the vehicle&apos;s UV atlas through
                 panel frames measured from this asset&apos;s geometry — decals sit on top of the
                 scheme, which sits on top of paint and stripes.
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
+      {manifest.liveryPanels.length > 0 && liveryReady === true && (
+        <div>
+          <span className="field-label">Patina &amp; weathering</span>
+          <FinishSlider
+            label="Amount"
+            value={build.patina.amount}
+            min={0}
+            max={1}
+            onChange={(v) => setPatina({ amount: v })}
+          />
+          {build.patina.amount > 0 && (
+            <>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {(
+                  [
+                    ['fade', 'Faded paint'],
+                    ['rust', 'Surface rust'],
+                    ['grime', 'Grime'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    className={`btn !py-1 ${build.patina[key] ? 'btn-on' : ''}`}
+                    aria-pressed={build.patina[key]}
+                    onClick={() => setPatina({ [key]: !build.patina[key] })}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <button
+                  className="btn !py-1"
+                  title={`Current pattern seed: ${build.patina.seed}`}
+                  onClick={() => setPatina({ seed: Math.floor(Math.random() * 1e9) })}
+                >
+                  Re-roll pattern
+                </button>
+              </div>
+              <p className="mt-1 text-[10px] text-graphite-400">
+                Cosmetic display effect drawn onto the UV atlas over the body and hood zones — rust
+                favours the lower body, fade the sun-facing panels, grime the rockers. The pattern
+                is deterministic per seed and saves with the build. Not a corrosion prediction.
               </p>
             </>
           )}

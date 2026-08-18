@@ -9,8 +9,10 @@
  * setTransform — this keeps canvas font sizes comfortably above 1px, which
  * some engines rasterise poorly.
  */
-import type { AssetManifest, LiveryAnchor, LiveryPanel, LiverySetup } from '@/lib/schemas';
-import { getLiveryScheme, type SchemePoint } from '@/lib/liverySchemes';
+import type { AssetManifest, LiveryAnchor, LiverySetup, PatinaSetup } from '@/lib/schemas';
+import { getLiveryScheme } from '@/lib/liverySchemes';
+import { drawPatina } from './patinaTexture';
+import { projectToCanvas } from './uvProject';
 
 export const LIVERY_TEXTURE_SIZE = 2048;
 
@@ -70,16 +72,6 @@ function drawLettering(
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
-/** Project a car-space point through an island frame to canvas pixels. */
-function projectToCanvas(panel: LiveryPanel, pt: SchemePoint, size: number): [number, number] {
-  const d = [pt[0] - panel.origin[0], pt[1] - panel.origin[1], pt[2] - panel.origin[2]];
-  const r = d[0]! * panel.rightDir[0] + d[1]! * panel.rightDir[1] + d[2]! * panel.rightDir[2];
-  const u = d[0]! * panel.upDir[0] + d[1]! * panel.upDir[1] + d[2]! * panel.upDir[2];
-  const uvX = panel.uv[0] + panel.rightUvPerM[0] * r + panel.upUvPerM[0] * u;
-  const uvY = panel.uv[1] + panel.rightUvPerM[1] * r + panel.upUvPerM[1] * u;
-  return [uvX * size, (1 - uvY) * size];
-}
-
 /** Pre-designed scheme polygons — drawn first so decals sit on top. */
 function drawScheme(
   ctx: CanvasRenderingContext2D,
@@ -107,11 +99,15 @@ function drawScheme(
   }
 }
 
-/** Repaint the whole livery canvas from the build's livery setup. */
+/**
+ * Repaint the whole livery canvas from the build's livery + patina setup.
+ * Layer order: scheme polygons, roundels, lettering, then weathering on top.
+ */
 export function drawLiveryTexture(
   canvas: HTMLCanvasElement,
   manifest: AssetManifest,
   livery: LiverySetup,
+  patina?: PatinaSetup,
 ): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
@@ -128,4 +124,5 @@ export function drawLiveryTexture(
     const anchor = anchors.get(id);
     if (anchor?.kind === 'lettering') drawLettering(ctx, anchor, livery.lettering, size);
   }
+  if (patina) drawPatina(ctx, manifest, patina, size);
 }

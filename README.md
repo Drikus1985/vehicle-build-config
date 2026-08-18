@@ -54,6 +54,12 @@ Nova-specific configurator features:
   onto the asset's UV atlas at panel anchors measured from the geometry
   (`scripts/probe-nova-livery-anchors.mjs`), composited over paint and stripes in the
   shader. When `nova-1970-uv.glb` is absent the Paint tab says so instead of pretending.
+- **Patina &amp; weathering**: an amount slider with Faded paint / Surface rust / Grime
+  toggles, drawn procedurally onto the same UV atlas — rust favours the lower body and
+  panel edges, fade the sun-facing panels, grime the rockers — while the paint's
+  roughness rises and clearcoat dies with the amount. The pattern comes from a seeded
+  PRNG (re-roll to taste), so a saved build restores its exact weathering. Cosmetic
+  display effect only, not a corrosion prediction.
 - **Pre-designed livery schemes**: Side spear, Hockey stick, Lower two-tone, and
   Nose &amp; tail bands — full-car designs with a scheme colour and a keyline colour,
   layered under the roundels/lettering. Schemes are authored as car-space polygons

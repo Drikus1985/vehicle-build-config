@@ -11,6 +11,7 @@ import type {
   FabricationStatus,
   LiverySetup,
   PaintZoneSetting,
+  PatinaSetup,
   PlateSetup,
   Stance,
   StripeSetup,
@@ -267,6 +268,12 @@ export function setLivery(patch: LiveryPatch): void {
           : {}),
       };
     }
+  });
+}
+
+export function setPatina(patch: Partial<PatinaSetup>): void {
+  update((draft) => {
+    draft.patina = { ...draft.patina, ...patch };
   });
 }
 
