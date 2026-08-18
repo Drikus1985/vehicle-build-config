@@ -48,6 +48,12 @@ Nova-specific configurator features:
   width controls (Paint tab). Painted in the shader from car-space geometry — no decal
   textures needed — over the zones listed in the manifest's `stripeZones`, so stripes
   follow the hood, scoops, roof and trunk and skip glass and trim automatically.
+- **Livery** (needs the UV-mapped asset below): racing roundels with your number on the
+  doors, hood, roof and trunk lid, plus lettering on the front fenders and rear quarters —
+  each placement toggles independently, with colour and size controls. Graphics are drawn
+  onto the asset's UV atlas at panel anchors measured from the geometry
+  (`scripts/probe-nova-livery-anchors.mjs`), composited over paint and stripes in the
+  shader. When `nova-1970-uv.glb` is absent the Paint tab says so instead of pretending.
 
 ### UV-mapped variant
 
@@ -60,9 +66,12 @@ node scripts/convert-nova-uv-to-glb.mjs <dir-with-extracted-obj-and-mtl>
 This produces `public/assets/vehicles/nova-1970-uv.glb` (also gitignored — same licence):
 metres/Y-up/nose-+Z like the original, vertex-welded, Phong→PBR converted, UVs verified on
 every node except the two `396` badge scripts. Node names are identical to the original
-asset plus `Object001`/`Object002` (window glass split during the UV work). It is staged
-for upcoming texture features (numberplates, stripes/liveries, patina); to use it as the
-runtime asset today, copy it over `nova-1970.glb`.
+asset plus `Object001`/`Object002` (window glass split during the UV work).
+
+When this file is present the viewer **prefers it automatically** (a fast HEAD check at
+load time) because it powers the livery feature; when absent, the original
+`nova-1970.glb` loads and liveries are truthfully unavailable. The original asset keeps
+slightly nicer glass (KHR transmission), so keep both files around.
 
 ## Setup
 

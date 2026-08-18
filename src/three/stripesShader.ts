@@ -1,12 +1,20 @@
 /**
- * Shader-painted racing stripes. A small extension injected into the standard
- * material of stripe-eligible zones: the stripe mask is computed from
- * car-space position and normal (no UVs/textures), so it stays glued to the
- * panels through stance, isolation and exploded view.
+ * Shader-painted zone effects: racing stripes and (on UV-mapped assets) the
+ * livery overlay. A small extension injected into the standard material of
+ * eligible zones.
  *
- * Masks (car space, metres — matched to the ~1.9 m-wide catalogue vehicles):
+ * Stripes: the mask is computed from car-space position and normal (no
+ * UVs/textures), so it stays glued to the panels through stance, isolation
+ * and exploded view. Masks (car space, metres — matched to the ~1.9 m-wide
+ * catalogue vehicles):
  * - single / twin-rally: top-facing surfaces plus the upper nose/tail faces
  * - rocker: side-facing surfaces in a low horizontal band
+ *
+ * Livery: a shared canvas texture (see liveryTexture.ts) sampled with the
+ * asset's own UVs and composited over paint and stripes by its alpha. Only
+ * materials created with a livery map ever sample it; everything is
+ * uniform-driven so changes never recompile, and all materials share one
+ * program variant.
  */
 import * as THREE from 'three';
 import type { StripeSetup } from '@/lib/schemas';
@@ -16,16 +24,33 @@ export interface StripeUniforms {
   uStripeStyle: { value: number };
   uStripeColor: { value: THREE.Color };
   uStripeScale: { value: number };
+  uLiveryOn: { value: number };
+  uLiveryMap: { value: THREE.Texture };
 }
 
 const STRIPE_USERDATA_KEY = 'stripeUniforms';
 
-/** Attach the stripe extension to a material (before first compile). */
-export function applyStripeShader(material: THREE.MeshStandardMaterial): StripeUniforms {
+/** 1×1 transparent texture bound when a material has no livery source. */
+let blankTexture: THREE.DataTexture | null = null;
+function getBlankTexture(): THREE.DataTexture {
+  if (!blankTexture) {
+    blankTexture = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1);
+    blankTexture.needsUpdate = true;
+  }
+  return blankTexture;
+}
+
+/** Attach the zone-effects extension to a material (before first compile). */
+export function applyStripeShader(
+  material: THREE.MeshStandardMaterial,
+  liveryMap: THREE.Texture | null = null,
+): StripeUniforms {
   const uniforms: StripeUniforms = {
     uStripeStyle: { value: 0 },
     uStripeColor: { value: new THREE.Color('#f2f1ec') },
     uStripeScale: { value: 1 },
+    uLiveryOn: { value: 0 },
+    uLiveryMap: { value: liveryMap ?? getBlankTexture() },
   };
   material.userData[STRIPE_USERDATA_KEY] = uniforms;
 
@@ -34,11 +59,11 @@ export function applyStripeShader(material: THREE.MeshStandardMaterial): StripeU
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
-        '#include <common>\nvarying vec3 vStripePos;\nvarying vec3 vStripeNormal;',
+        '#include <common>\nvarying vec3 vStripePos;\nvarying vec3 vStripeNormal;\nvarying vec2 vLiveryUv;',
       )
       .replace(
         '#include <begin_vertex>',
-        '#include <begin_vertex>\nvStripePos = transformed;\nvStripeNormal = objectNormal;',
+        '#include <begin_vertex>\nvStripePos = transformed;\nvStripeNormal = objectNormal;\nvLiveryUv = uv;',
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
@@ -46,9 +71,12 @@ export function applyStripeShader(material: THREE.MeshStandardMaterial): StripeU
         `#include <common>
 varying vec3 vStripePos;
 varying vec3 vStripeNormal;
+varying vec2 vLiveryUv;
 uniform float uStripeStyle;
 uniform vec3 uStripeColor;
-uniform float uStripeScale;`,
+uniform float uStripeScale;
+uniform float uLiveryOn;
+uniform sampler2D uLiveryMap;`,
       )
       .replace(
         '#include <color_fragment>',
@@ -80,11 +108,16 @@ if (uStripeStyle > 0.5) {
     mask = sideFace * band * zLimit;
   }
   diffuseColor.rgb = mix(diffuseColor.rgb, uStripeColor, mask);
+}
+if (uLiveryOn > 0.5) {
+  // Livery graphics sit on top of paint and stripes.
+  vec4 livery = texture2D(uLiveryMap, vLiveryUv);
+  diffuseColor.rgb = mix(diffuseColor.rgb, livery.rgb, livery.a);
 }`,
       );
   };
-  // All stripe materials share one program variant.
-  material.customProgramCacheKey = () => 'with-stripes-v1';
+  // All zone-effect materials share one program variant.
+  material.customProgramCacheKey = () => 'with-stripes-v2';
   return uniforms;
 }
 
@@ -95,6 +128,13 @@ export function updateStripeUniforms(material: THREE.Material, setup: StripeSetu
   uniforms.uStripeStyle.value = STRIPE_STYLE_INDEX[setup.styleId];
   uniforms.uStripeColor.value.set(setup.colorHex);
   uniforms.uStripeScale.value = setup.widthScale;
+}
+
+/** Enable/disable livery sampling on a material that was given a livery map. */
+export function updateLiveryUniforms(material: THREE.Material, on: boolean): void {
+  const uniforms = material.userData[STRIPE_USERDATA_KEY] as StripeUniforms | undefined;
+  if (!uniforms) return;
+  uniforms.uLiveryOn.value = on && uniforms.uLiveryMap.value !== getBlankTexture() ? 1 : 0;
 }
 
 export function hasStripeShader(material: THREE.Material): boolean {

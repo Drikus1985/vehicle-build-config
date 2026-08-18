@@ -3,6 +3,32 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## UV livery system (2026-08-18)
+
+- Racing roundels (number, disc/ring colours, size) on doors/hood/roof/trunk and
+  lettering (text, colour, size) on fenders/quarters — every placement an independent
+  toggle. Graphics are drawn onto a 2048² canvas in the asset's UV space and composited
+  over paint and stripes in the zone shader by alpha (uniform-driven, one shared program,
+  no recompiles).
+- Placement data: `liveryAnchors` in the manifest — centre UV plus a measured UV-per-metre
+  frame per panel, derived from the UV asset's geometry by
+  `scripts/probe-nova-livery-anchors.mjs` (the atlas is an affine orthographic unwrap at
+  ~0.20 UV/m). Both body sides carry identical text orientation in UV space, so decals
+  read correctly and unmirrored on either side; hood/roof read from the front, the trunk
+  from the rear — all verified in screenshots (¾ front, left, right, ¾ rear, top).
+- Runtime asset selection: the viewer HEAD-checks the manifest's `liverySource`
+  (`nova-1970-uv.glb`, licensed → gitignored) and prefers it; without it the original GLB
+  loads and the Paint tab explains that liveries need the UV asset. The two UV-only glass
+  nodes (`Object001`/`Object002`) are mapped to the glass zone; add-on parts (scoops,
+  spoilers) are excluded from livery sampling because their UVs are unrelated.
+- `livery` on the Build (zod-defaulted for legacy saves), sanitised inputs (number ≤3
+  alphanumerics, lettering ≤18 printable chars), undoable actions, printable-summary
+  section, GLB↔manifest cross-check extended to the UV asset.
+- 94/94 unit tests (anchor validity/frames, legacy parsing, range rejection, sanitisers,
+  undo, UV-asset node coverage); e2e 4 passed + 1 flaky-passed-on-retry (the autosave
+  reload test, timing-sensitive under SwiftShader); zero console errors in all livery
+  screenshot runs.
+
 ## Racing stripes (2026-08-18)
 
 - Shader extension (onBeforeCompile on the zone materials the manifest lists in

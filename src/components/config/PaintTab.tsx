@@ -5,12 +5,16 @@ import type { SavedColor } from '@/lib/persistence/repositories';
 import {
   resetPaintToStock,
   setGlassTint,
+  setLivery,
   setPaintZone,
   setPlateSetup,
   setStripes,
+  toggleLiveryAnchor,
 } from '@/state/buildActions';
 import { PLATE_STYLES, PLATE_TEXT_MAX } from '@/lib/plates';
 import { STRIPE_COLORS, STRIPE_STYLES } from '@/lib/stripes';
+import { LIVERY_COLORS, LIVERY_NUMBER_MAX, LIVERY_TEXT_MAX } from '@/lib/livery';
+import { useLiveryAssetStatus } from '@/three/liveryAsset';
 import { useBuildStore } from '@/state/buildStore';
 import { useUiStore } from '@/state/uiStore';
 
@@ -46,6 +50,43 @@ function FinishSlider({
   );
 }
 
+function LiveryColorRow({
+  label,
+  value,
+  onPick,
+}: {
+  label: string;
+  value: string;
+  onPick: (hex: string) => void;
+}) {
+  return (
+    <div className="mt-1.5 flex items-center gap-1.5">
+      <span className="w-20 text-[11px] text-graphite-300">{label}</span>
+      {LIVERY_COLORS.map((c) => (
+        <button
+          key={c.hex}
+          className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 ${
+            value.toLowerCase() === c.hex.toLowerCase()
+              ? 'border-accent-500'
+              : 'border-graphite-600/60'
+          }`}
+          style={{ background: c.hex }}
+          title={c.name}
+          aria-label={`${label} colour ${c.name}`}
+          onClick={() => onPick(c.hex)}
+        />
+      ))}
+      <input
+        type="color"
+        className="h-5 w-7 cursor-pointer rounded border border-graphite-600 bg-graphite-850"
+        value={value}
+        aria-label={`Custom ${label.toLowerCase()} colour`}
+        onChange={(e) => onPick(e.target.value)}
+      />
+    </div>
+  );
+}
+
 export function PaintTab() {
   const build = useBuildStore((s) => s.build);
   const toast = useUiStore((s) => s.toast);
@@ -60,8 +101,11 @@ export function PaintTab() {
       .catch(() => {});
   }, []);
 
+  const manifest = (build ? getManifestForVehicle(build.vehicleId) : null) ?? null;
+  // null while the (fast) check for the UV-mapped livery asset is running.
+  const liveryReady = useLiveryAssetStatus(manifest);
+
   if (!build) return null;
-  const manifest = getManifestForVehicle(build.vehicleId);
   if (!manifest) {
     return <p className="text-xs text-graphite-400">Paint requires a vehicle with a 3D asset.</p>;
   }
@@ -275,6 +319,146 @@ export function PaintTab() {
             Painted in the shader over the body and hood zones — follows scoops and panels, no decal
             file needed.
           </p>
+        </div>
+      )}
+
+      {manifest.liveryAnchors.length > 0 && (
+        <div>
+          <span className="field-label">Livery</span>
+          {liveryReady === false ? (
+            <p className="text-[10px] text-graphite-400">
+              Liveries draw onto the UV-mapped asset, which is not installed. Convert the
+              seller&apos;s UV package with{' '}
+              <code>node scripts/convert-nova-uv-to-glb.mjs &lt;dir&gt;</code> and place{' '}
+              <code>nova-1970-uv.glb</code> next to the base model (see README) to enable them.
+            </p>
+          ) : (
+            <>
+              <div className="mt-1 flex items-end gap-2">
+                <label className="block">
+                  <span className="text-[11px] text-graphite-300">Racing number</span>
+                  <input
+                    className="input-base w-20 font-mono tracking-widest uppercase"
+                    value={build.livery.roundels.number}
+                    maxLength={LIVERY_NUMBER_MAX}
+                    placeholder="11"
+                    aria-label="Roundel racing number"
+                    onChange={(e) => setLivery({ roundels: { number: e.target.value } })}
+                  />
+                </label>
+                <div className="flex flex-wrap gap-1">
+                  {manifest.liveryAnchors
+                    .filter((a) => a.kind === 'roundel')
+                    .map((a) => (
+                      <button
+                        key={a.id}
+                        className={`btn !py-1 ${
+                          build.livery.roundels.anchorIds.includes(a.id) ? 'btn-on' : ''
+                        }`}
+                        aria-pressed={build.livery.roundels.anchorIds.includes(a.id)}
+                        onClick={() => toggleLiveryAnchor('roundels', a.id)}
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                </div>
+              </div>
+              {build.livery.roundels.anchorIds.length > 0 && (
+                <>
+                  <LiveryColorRow
+                    label="Disc"
+                    value={build.livery.roundels.discHex}
+                    onPick={(hex) => setLivery({ roundels: { discHex: hex } })}
+                  />
+                  <LiveryColorRow
+                    label="Ring & number"
+                    value={build.livery.roundels.ringHex}
+                    onPick={(hex) => setLivery({ roundels: { ringHex: hex } })}
+                  />
+                  <label className="mt-1.5 block">
+                    <span className="flex justify-between text-[11px] text-graphite-300">
+                      Roundel size
+                      <span className="font-mono text-graphite-400">
+                        {Math.round(build.livery.roundels.sizeScale * 100)}%
+                      </span>
+                    </span>
+                    <input
+                      type="range"
+                      className="range-base"
+                      min={0.6}
+                      max={1.3}
+                      step={0.05}
+                      value={build.livery.roundels.sizeScale}
+                      onChange={(e) =>
+                        setLivery({ roundels: { sizeScale: Number(e.target.value) } })
+                      }
+                    />
+                  </label>
+                </>
+              )}
+              <div className="mt-2">
+                <label className="block">
+                  <span className="text-[11px] text-graphite-300">Lettering</span>
+                  <input
+                    className="input-base"
+                    value={build.livery.lettering.text}
+                    maxLength={LIVERY_TEXT_MAX}
+                    placeholder="TEAM OR SPONSOR"
+                    aria-label="Livery lettering text"
+                    onChange={(e) => setLivery({ lettering: { text: e.target.value } })}
+                  />
+                </label>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {manifest.liveryAnchors
+                    .filter((a) => a.kind === 'lettering')
+                    .map((a) => (
+                      <button
+                        key={a.id}
+                        className={`btn !py-1 ${
+                          build.livery.lettering.anchorIds.includes(a.id) ? 'btn-on' : ''
+                        }`}
+                        aria-pressed={build.livery.lettering.anchorIds.includes(a.id)}
+                        onClick={() => toggleLiveryAnchor('lettering', a.id)}
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                </div>
+                {build.livery.lettering.anchorIds.length > 0 && (
+                  <>
+                    <LiveryColorRow
+                      label="Lettering"
+                      value={build.livery.lettering.colorHex}
+                      onPick={(hex) => setLivery({ lettering: { colorHex: hex } })}
+                    />
+                    <label className="mt-1.5 block">
+                      <span className="flex justify-between text-[11px] text-graphite-300">
+                        Lettering size
+                        <span className="font-mono text-graphite-400">
+                          {Math.round(build.livery.lettering.sizeScale * 100)}%
+                        </span>
+                      </span>
+                      <input
+                        type="range"
+                        className="range-base"
+                        min={0.6}
+                        max={1.3}
+                        step={0.05}
+                        value={build.livery.lettering.sizeScale}
+                        onChange={(e) =>
+                          setLivery({ lettering: { sizeScale: Number(e.target.value) } })
+                        }
+                      />
+                    </label>
+                  </>
+                )}
+              </div>
+              <p className="mt-1 text-[10px] text-graphite-400">
+                Roundels and lettering are drawn onto the vehicle&apos;s UV atlas at measured panel
+                anchors — they follow the doors, hood, roof and quarters exactly.
+              </p>
+            </>
+          )}
         </div>
       )}
 

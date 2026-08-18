@@ -186,10 +186,34 @@ export const plateMountSchema = z.object({
 });
 export type PlateMount = z.infer<typeof plateMountSchema>;
 
+/**
+ * A named decal placement on the livery texture atlas. `uv` is the decal
+ * centre in the asset's UV space; the two vectors give d(uv) per metre along
+ * the panel's "text right" / "text up" directions as read from outside the
+ * car (derived from the asset via scripts/probe-nova-livery-anchors.mjs).
+ */
+export const liveryAnchorSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  kind: z.enum(['roundel', 'lettering']),
+  uv: z.tuple([z.number(), z.number()]),
+  rightUvPerM: z.tuple([z.number(), z.number()]),
+  upUvPerM: z.tuple([z.number(), z.number()]),
+  /** Roundel diameter / lettering cap height, metres (at 100% size). */
+  sizeM: z.number().positive(),
+});
+export type LiveryAnchor = z.infer<typeof liveryAnchorSchema>;
+
 export const assetManifestSchema = z.object({
   id: z.string().min(1),
   schemaVersion: z.number().int().default(SCHEMA_VERSION),
   source: assetSourceSchema,
+  /**
+   * Optional UV-mapped variant of the base asset used for livery graphics.
+   * Preferred at runtime when the file is present; liveries are unavailable
+   * (and say so) when it is not.
+   */
+  liverySource: assetSourceSchema.optional(),
   /**
    * Optional companion asset (e.g. project-original add-on parts fitted to a
    * licensed base model). Its nodes join the same meshNodes namespace.
@@ -216,6 +240,10 @@ export const assetManifestSchema = z.object({
   plateMounts: z.array(plateMountSchema).default([]),
   /** Material-zone ids the shader-painted racing stripes may cover. */
   stripeZones: z.array(z.string()).default([]),
+  /** Material-zone ids the livery texture may cover (needs `liverySource`). */
+  liveryZones: z.array(z.string()).default([]),
+  /** Decal placements on the livery atlas (empty = no livery support). */
+  liveryAnchors: z.array(liveryAnchorSchema).default([]),
   cameraTargets: z.object({
     defaultTarget: vec3Schema,
     defaultPosition: vec3Schema,
@@ -441,6 +469,30 @@ export const stripeSetupSchema = z.object({
 });
 export type StripeSetup = z.infer<typeof stripeSetupSchema>;
 
+const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
+/** Livery graphics drawn onto the UV atlas (anchor ids from the manifest). */
+export const liverySetupSchema = z.object({
+  roundels: z
+    .object({
+      anchorIds: z.array(z.string()).default([]),
+      number: z.string().max(3).default('11'),
+      discHex: hexColorSchema.default('#f2f1ec'),
+      ringHex: hexColorSchema.default('#141519'),
+      sizeScale: z.number().min(0.6).max(1.3).default(1),
+    })
+    .default({}),
+  lettering: z
+    .object({
+      anchorIds: z.array(z.string()).default([]),
+      text: z.string().max(18).default(''),
+      colorHex: hexColorSchema.default('#f2f1ec'),
+      sizeScale: z.number().min(0.6).max(1.3).default(1),
+    })
+    .default({}),
+});
+export type LiverySetup = z.infer<typeof liverySetupSchema>;
+
 export const cameraStateSchema = z.object({
   position: vec3Schema,
   target: vec3Schema,
@@ -465,6 +517,8 @@ export const buildSchema = z.object({
   plateSetup: plateSetupSchema.default({ text: 'NOVA 70', styleId: 'classic-black' }),
   /** Defaulted so builds saved before this field existed keep loading. */
   stripes: stripeSetupSchema.default({ styleId: 'none', colorHex: '#f2f1ec', widthScale: 1 }),
+  /** Defaulted so builds saved before this field existed keep loading. */
+  livery: liverySetupSchema.default({}),
   annotations: z.array(annotationSchema),
   fabricationRecords: z.record(z.string(), fabricationRecordSchema),
   cameraState: cameraStateSchema.nullable(),

@@ -9,12 +9,14 @@ import type {
   AxleSetup,
   FabricationRecord,
   FabricationStatus,
+  LiverySetup,
   PaintZoneSetting,
   PlateSetup,
   Stance,
   StripeSetup,
 } from '@/lib/schemas';
 import { sanitizePlateText } from '@/lib/plates';
+import { sanitizeLetteringText, sanitizeRoundelNumber } from '@/lib/livery';
 import { useBuildStore } from './buildStore';
 
 const update = (...args: Parameters<ReturnType<typeof useBuildStore.getState>['update']>) =>
@@ -231,6 +233,46 @@ export function setPlateSetup(patch: Partial<PlateSetup>): void {
 export function setStripes(patch: Partial<StripeSetup>): void {
   update((draft) => {
     draft.stripes = { ...draft.stripes, ...patch };
+  });
+}
+
+// --- Livery -----------------------------------------------------------------
+
+export interface LiveryPatch {
+  roundels?: Partial<LiverySetup['roundels']>;
+  lettering?: Partial<LiverySetup['lettering']>;
+}
+
+export function setLivery(patch: LiveryPatch): void {
+  update((draft) => {
+    if (patch.roundels) {
+      draft.livery.roundels = {
+        ...draft.livery.roundels,
+        ...patch.roundels,
+        ...(patch.roundels.number !== undefined
+          ? { number: sanitizeRoundelNumber(patch.roundels.number) }
+          : {}),
+      };
+    }
+    if (patch.lettering) {
+      draft.livery.lettering = {
+        ...draft.livery.lettering,
+        ...patch.lettering,
+        ...(patch.lettering.text !== undefined
+          ? { text: sanitizeLetteringText(patch.lettering.text) }
+          : {}),
+      };
+    }
+  });
+}
+
+/** Toggle one livery anchor id on a roundel/lettering anchor list. */
+export function toggleLiveryAnchor(kind: 'roundels' | 'lettering', anchorId: string): void {
+  update((draft) => {
+    const list = draft.livery[kind].anchorIds;
+    draft.livery[kind].anchorIds = list.includes(anchorId)
+      ? list.filter((id) => id !== anchorId)
+      : [...list, anchorId];
   });
 }
 

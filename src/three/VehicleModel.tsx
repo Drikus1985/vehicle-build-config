@@ -11,7 +11,15 @@ import { useUiStore } from '@/state/uiStore';
 import { addAnnotation } from '@/state/buildActions';
 import { Wheels } from './Wheels';
 import { GeneratedPlates } from './PlateMeshes';
-import { applyStripeShader, hasStripeShader, updateStripeUniforms } from './stripesShader';
+import {
+  applyStripeShader,
+  hasStripeShader,
+  updateLiveryUniforms,
+  updateStripeUniforms,
+} from './stripesShader';
+import { useLiveryAssetAvailable } from './liveryAsset';
+import { drawLiveryTexture, LIVERY_TEXTURE_SIZE } from './liveryTexture';
+import { liveryHasContent } from '@/lib/livery';
 
 const ACCENT = new THREE.Color('#f59e0b');
 const HOVER = new THREE.Color('#f5cf8b');
@@ -58,10 +66,12 @@ function collectMeshes(object: THREE.Object3D): THREE.Mesh[] {
 export function VehicleModel({ manifest, build, interactive }: VehicleModelProps) {
   // Load the base asset plus the optional add-on asset (e.g. project-original
   // scoops/spoilers fitted to a licensed base model). Node names from both
-  // files share one namespace, defined by the manifest.
-  const assetUrls = manifest.addonSource
-    ? [manifest.source.uri, manifest.addonSource.uri]
-    : [manifest.source.uri];
+  // files share one namespace, defined by the manifest. When the UV-mapped
+  // livery variant is installed it is preferred as the base asset.
+  const liveryAvailable = useLiveryAssetAvailable(manifest);
+  const baseUri =
+    liveryAvailable && manifest.liverySource ? manifest.liverySource.uri : manifest.source.uri;
+  const assetUrls = manifest.addonSource ? [baseUri, manifest.addonSource.uri] : [baseUri];
   const gltfs = useGLTF(assetUrls);
   const mainScene = gltfs[0]!.scene;
   const addonScene = gltfs[1]?.scene ?? null;
@@ -80,13 +90,28 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   const setPlacingAnnotation = useUiStore((s) => s.setPlacingAnnotation);
   const toast = useUiStore((s) => s.toast);
 
+  // Livery overlay texture (only when the UV-mapped asset is what we loaded).
+  const liveryBundle = useMemo(() => {
+    if (!liveryAvailable || manifest.liveryAnchors.length === 0) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = LIVERY_TEXTURE_SIZE;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return { canvas, texture };
+  }, [liveryAvailable, manifest]);
+
+  useEffect(() => {
+    return () => liveryBundle?.texture.dispose();
+  }, [liveryBundle]);
+
   // Clone the cached scene and give every mapped node its own materials.
   // Paintable zones get fresh physical materials driven by build paint;
   // non-paintable zones keep clones of the asset's original PBR materials
   // (preserving chrome/glass/transmission looks from real assets).
   const { root, nodes } = useMemo(() => {
     const root = new THREE.Group();
-    root.add(mainScene.clone(true));
+    const mainClone = mainScene.clone(true);
+    root.add(mainClone);
     if (addonScene) root.add(addonScene.clone(true));
     const nodes = new Map<string, NodeEntry>();
     const zoneById = new Map(manifest.materialZones.map((z) => [z.id, z]));
@@ -97,6 +122,9 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
       if (meshes.length === 0) continue;
       const zone = nodeDef.materialZoneId ? zoneById.get(nodeDef.materialZoneId) : undefined;
       const paintable = zone?.paintable === true;
+      // Livery graphics only make sense on the UV-mapped base asset's own
+      // meshes — add-on parts have unrelated UVs and are skipped.
+      const fromBaseAsset = mainClone.getObjectByName(nodeDef.nodeName) === obj;
       const materials: THREE.MeshStandardMaterial[] = [];
       const originals: MaterialSnapshot[] = [];
       for (const mesh of meshes) {
@@ -109,7 +137,13 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
             clearcoat: zone.defaultFinish.clearcoat,
             side: THREE.DoubleSide,
           });
-          if (manifest.stripeZones.includes(zone.id)) applyStripeShader(material);
+          const liveryMap =
+            liveryBundle && fromBaseAsset && manifest.liveryZones.includes(zone.id)
+              ? liveryBundle.texture
+              : null;
+          if (manifest.stripeZones.includes(zone.id) || liveryMap) {
+            applyStripeShader(material, liveryMap);
+          }
         } else {
           const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
           material =
@@ -146,7 +180,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
       });
     }
     return { root, nodes };
-  }, [mainScene, addonScene, manifest]);
+  }, [mainScene, addonScene, manifest, liveryBundle]);
 
   useEffect(() => {
     return () => {
@@ -201,10 +235,20 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
           material.color.lerp(new THREE.Color('#090b0d'), build.glassTint);
         }
         // Racing stripes (shader-painted on stripe-eligible zones).
-        if (hasStripeShader(material)) updateStripeUniforms(material, build.stripes);
+        if (hasStripeShader(material)) {
+          updateStripeUniforms(material, build.stripes);
+          updateLiveryUniforms(material, liveryHasContent(build.livery));
+        }
       });
     }
-  }, [nodes, build.paint, build.glassTint, build.stripes, installedByPart]);
+  }, [nodes, build.paint, build.glassTint, build.stripes, build.livery, installedByPart]);
+
+  // Repaint the livery canvas whenever the livery setup changes.
+  useEffect(() => {
+    if (!liveryBundle) return;
+    drawLiveryTexture(liveryBundle.canvas, manifest, build.livery);
+    liveryBundle.texture.needsUpdate = true;
+  }, [liveryBundle, manifest, build.livery]);
 
   // Baked plate meshes are replaced by generated plates (PlateMeshes).
   const replacedPlateNodes = useMemo(

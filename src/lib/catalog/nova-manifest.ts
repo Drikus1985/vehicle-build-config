@@ -21,6 +21,15 @@ export const NOVA_MANIFEST: AssetManifest = {
     sizeBytes: 32257880,
     compression: 'none',
   },
+  // UV-mapped variant of the same purchased asset (converted from the
+  // seller's UV update via scripts/convert-nova-uv-to-glb.mjs — same licence,
+  // also not committed). Preferred at runtime when present; enables liveries.
+  liverySource: {
+    type: 'gltf',
+    uri: '/assets/vehicles/nova-1970-uv.glb',
+    sizeBytes: 33297664,
+    compression: 'none',
+  },
   // Project-original add-on parts (scoops, spoilers) fitted to this vehicle;
   // CC0 and committed to the repo, unlike the licensed base model.
   addonSource: {
@@ -285,6 +294,20 @@ export const NOVA_MANIFEST: AssetManifest = {
     // --- Glass, mirrors, wipers ---------------------------------------------
     {
       nodeName: 'window_glass',
+      componentId: 'part-nova-glass',
+      materialZoneId: 'glass',
+      explodeOffset: [0, 0.4, 0],
+    },
+    // Window glass panes split off during the seller's UV work — these two
+    // nodes exist only in the UV-mapped liverySource asset.
+    {
+      nodeName: 'Object001',
+      componentId: 'part-nova-glass',
+      materialZoneId: 'glass',
+      explodeOffset: [0, 0.4, 0],
+    },
+    {
+      nodeName: 'Object002',
       componentId: 'part-nova-glass',
       materialZoneId: 'glass',
       explodeOffset: [0, 0.4, 0],
@@ -652,6 +675,94 @@ export const NOVA_MANIFEST: AssetManifest = {
   ],
   // Shader-painted racing stripes may cover these paintable zones.
   stripeZones: ['body', 'hood'],
+  // Livery graphics (roundels, lettering) drawn on the liverySource UV atlas.
+  liveryZones: ['body', 'hood'],
+  // Anchor UVs + local UV-per-metre frames measured from the UV asset via
+  // scripts/probe-nova-livery-anchors.mjs (the atlas is a clean affine
+  // orthographic unwrap at ~0.20 UV per metre on every panel).
+  liveryAnchors: [
+    {
+      id: 'door-l',
+      label: 'Left door',
+      kind: 'roundel',
+      uv: [0.3932, 0.6317],
+      rightUvPerM: [0.2029, 0.0003],
+      upUvPerM: [-0.0005, 0.2015],
+      sizeM: 0.46,
+    },
+    {
+      id: 'door-r',
+      label: 'Right door',
+      kind: 'roundel',
+      uv: [0.6011, 0.8599],
+      rightUvPerM: [0.2029, -0.0003],
+      upUvPerM: [0.0005, 0.2015],
+      sizeM: 0.46,
+    },
+    {
+      id: 'hood',
+      label: 'Hood',
+      kind: 'roundel',
+      uv: [0.1928, 0.3596],
+      rightUvPerM: [0, -0.189],
+      upUvPerM: [0.1973, 0],
+      sizeM: 0.55,
+    },
+    {
+      id: 'roof',
+      label: 'Roof',
+      kind: 'roundel',
+      uv: [0.5453, 0.3596],
+      rightUvPerM: [0, -0.2038],
+      upUvPerM: [0.203, 0],
+      sizeM: 0.58,
+    },
+    {
+      id: 'trunk',
+      label: 'Trunk lid',
+      kind: 'roundel',
+      uv: [0.8779, 0.3596],
+      rightUvPerM: [0, 0.2018],
+      upUvPerM: [-0.195, 0],
+      sizeM: 0.42,
+    },
+    {
+      id: 'quarter-l',
+      label: 'Left quarter',
+      kind: 'lettering',
+      uv: [0.859, 0.652],
+      rightUvPerM: [0.2026, -0.0003],
+      upUvPerM: [-0.0018, 0.2025],
+      sizeM: 0.11,
+    },
+    {
+      id: 'quarter-r',
+      label: 'Right quarter',
+      kind: 'lettering',
+      uv: [0.1351, 0.8802],
+      rightUvPerM: [0.2035, 0.0003],
+      upUvPerM: [0.0009, 0.2025],
+      sizeM: 0.11,
+    },
+    {
+      id: 'fender-l',
+      label: 'Left fender',
+      kind: 'lettering',
+      uv: [0.0915, 0.6425],
+      rightUvPerM: [0.2003, 0.0017],
+      upUvPerM: [0.014, 0.1922],
+      sizeM: 0.09,
+    },
+    {
+      id: 'fender-r',
+      label: 'Right fender',
+      kind: 'lettering',
+      uv: [0.9038, 0.8707],
+      rightUvPerM: [0.2017, -0.0017],
+      upUvPerM: [-0.0079, 0.1922],
+      sizeM: 0.09,
+    },
+  ],
   // Generated numberplates replace the baked LicPlate meshes (positions and
   // 520 x 110 mm size measured from the asset).
   plateMounts: [

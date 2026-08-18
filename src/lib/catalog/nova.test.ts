@@ -16,7 +16,12 @@ import { setPartRemoved, setPartVariant } from '@/state/buildActions';
 import { useBuildStore } from '@/state/buildStore';
 
 const GLB_PATH = resolve(process.cwd(), 'public/assets/vehicles/nova-1970.glb');
+const UV_GLB_PATH = resolve(process.cwd(), 'public/assets/vehicles/nova-1970-uv.glb');
 const ADDONS_GLB_PATH = resolve(process.cwd(), 'public/assets/vehicles/nova-addons.glb');
+
+// Window glass panes split during the seller's UV work — present only in the
+// UV-mapped liverySource asset, absent from the original GLB.
+const UV_ONLY_NODES = new Set(['Object001', 'Object002']);
 
 function glbNodeNames(path: string): Set<string> {
   const buffer = readFileSync(path);
@@ -99,12 +104,28 @@ describe('Nova catalogue data', () => {
   it.skipIf(!existsSync(GLB_PATH))('every manifest node exists in the local GLBs', () => {
     const names = new Set([...glbNodeNames(GLB_PATH), ...glbNodeNames(ADDONS_GLB_PATH)]);
     for (const node of NOVA_MANIFEST.meshNodes) {
+      if (UV_ONLY_NODES.has(node.nodeName)) continue;
       expect(names.has(node.nodeName), `GLBs missing node ${node.nodeName}`).toBe(true);
     }
     // And the manifest maps every node in both GLBs (nothing unaccounted for).
     const mapped = new Set(NOVA_MANIFEST.meshNodes.map((n) => n.nodeName));
     for (const name of names) {
       expect(mapped.has(name), `GLB node ${name} unmapped in manifest`).toBe(true);
+    }
+  });
+
+  // Same cross-check against the UV-mapped liverySource asset (also licensed
+  // and uncommitted): it must contain every non-addon manifest node.
+  it.skipIf(!existsSync(UV_GLB_PATH))('the UV asset covers every manifest node', () => {
+    const uvNames = glbNodeNames(UV_GLB_PATH);
+    const addonNames = glbNodeNames(ADDONS_GLB_PATH);
+    for (const node of NOVA_MANIFEST.meshNodes) {
+      if (addonNames.has(node.nodeName)) continue;
+      expect(uvNames.has(node.nodeName), `UV GLB missing node ${node.nodeName}`).toBe(true);
+    }
+    const mapped = new Set(NOVA_MANIFEST.meshNodes.map((n) => n.nodeName));
+    for (const name of uvNames) {
+      expect(mapped.has(name), `UV GLB node ${name} unmapped in manifest`).toBe(true);
     }
   });
 

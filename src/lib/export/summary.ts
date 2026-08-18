@@ -3,6 +3,7 @@ import { checkAxleFitment, computeTyreSpec } from '@/lib/fitment/tyres';
 import { statusMeta } from '@/lib/titanforge';
 import { getPlateStyle } from '@/lib/plates';
 import { STRIPE_STYLES } from '@/lib/stripes';
+import { liveryHasContent } from '@/lib/livery';
 import type { Build } from '@/lib/schemas';
 
 function esc(s: string): string {
@@ -100,6 +101,36 @@ ${
   manifest && manifest.stripeZones.length > 0 && build.stripes.styleId !== 'none'
     ? `<h2>Racing stripes</h2>
 <p>${esc(STRIPE_STYLES.find((s) => s.id === build.stripes.styleId)?.label ?? build.stripes.styleId)} — <span class="swatch" style="background:${esc(build.stripes.colorHex)}"></span> ${esc(build.stripes.colorHex)} at ${Math.round(build.stripes.widthScale * 100)}% width</p>
+`
+    : ''
+}
+${
+  manifest && manifest.liveryAnchors.length > 0 && liveryHasContent(build.livery)
+    ? `<h2>Livery</h2>
+<p>${[
+        build.livery.roundels.anchorIds.length > 0 && build.livery.roundels.number
+          ? `Roundel #${esc(build.livery.roundels.number)} on ${esc(
+              build.livery.roundels.anchorIds
+                .map(
+                  (id) =>
+                    manifest.liveryAnchors.find((a) => a.id === id)?.label.toLowerCase() ?? id,
+                )
+                .join(', '),
+            )}`
+          : '',
+        build.livery.lettering.anchorIds.length > 0 && build.livery.lettering.text.trim()
+          ? `Lettering "${esc(build.livery.lettering.text)}" on ${esc(
+              build.livery.lettering.anchorIds
+                .map(
+                  (id) =>
+                    manifest.liveryAnchors.find((a) => a.id === id)?.label.toLowerCase() ?? id,
+                )
+                .join(', '),
+            )}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')}</p>
 `
     : ''
 }
