@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { FACTORY_PALETTES, getManifestForVehicle } from '@/lib/catalog';
 import { repositories } from '@/lib/persistence/idb';
 import type { SavedColor } from '@/lib/persistence/repositories';
-import { resetPaintToStock, setGlassTint, setPaintZone } from '@/state/buildActions';
+import { resetPaintToStock, setGlassTint, setPaintZone, setPlateSetup } from '@/state/buildActions';
+import { PLATE_STYLES, PLATE_TEXT_MAX } from '@/lib/plates';
 import { useBuildStore } from '@/state/buildStore';
 import { useUiStore } from '@/state/uiStore';
 
@@ -202,6 +203,41 @@ export function PaintTab() {
           onChange={setGlassTint}
         />
       </div>
+
+      {manifest.plateMounts.length > 0 && (
+        <div>
+          <span className="field-label">Numberplate</span>
+          <input
+            className="input-base font-mono tracking-widest uppercase"
+            value={build.plateSetup.text}
+            maxLength={PLATE_TEXT_MAX}
+            placeholder="PLATE TEXT"
+            aria-label="Numberplate text"
+            onChange={(e) => setPlateSetup({ text: e.target.value })}
+          />
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {PLATE_STYLES.map((style) => (
+              <button
+                key={style.id}
+                className={`btn !py-1 ${build.plateSetup.styleId === style.id ? 'btn-on' : ''}`}
+                aria-pressed={build.plateSetup.styleId === style.id}
+                onClick={() => setPlateSetup({ styleId: style.id })}
+              >
+                <span
+                  className="h-3 w-5 rounded-sm border"
+                  style={{ background: style.background, borderColor: style.text }}
+                  aria-hidden
+                />
+                {style.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-[10px] text-graphite-400">
+            Decorative display plate (front &amp; rear) — generic colourways, not an official plate
+            design. Remove via the "Licence plates" part.
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <button className="btn flex-1" onClick={resetPaintToStock}>

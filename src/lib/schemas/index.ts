@@ -170,6 +170,22 @@ export const cameraPresetSchema = z.object({
 });
 export type CameraPreset = z.infer<typeof cameraPresetSchema>;
 
+/**
+ * A mounting point for a generated numberplate. The named baked plate meshes
+ * are hidden and replaced by a canvas-textured plate carrying the build's
+ * plate text; `componentId` ties visibility/selection to a catalogue part.
+ */
+export const plateMountSchema = z.object({
+  id: z.enum(['front', 'rear']),
+  componentId: z.string().min(1),
+  position: vec3Schema,
+  rotationDeg: vec3Schema,
+  widthM: z.number().positive(),
+  heightM: z.number().positive(),
+  hideNodeNames: z.array(z.string()),
+});
+export type PlateMount = z.infer<typeof plateMountSchema>;
+
 export const assetManifestSchema = z.object({
   id: z.string().min(1),
   schemaVersion: z.number().int().default(SCHEMA_VERSION),
@@ -197,6 +213,7 @@ export const assetManifestSchema = z.object({
   meshNodes: z.array(meshNodeSchema),
   materialZones: z.array(materialZoneSchema),
   wheelAnchors: z.array(wheelAnchorSchema),
+  plateMounts: z.array(plateMountSchema).default([]),
   cameraTargets: z.object({
     defaultTarget: vec3Schema,
     defaultPosition: vec3Schema,
@@ -408,6 +425,13 @@ export const installedPartSchema = z.object({
 });
 export type InstalledPart = z.infer<typeof installedPartSchema>;
 
+export const plateSetupSchema = z.object({
+  /** Uppercase display text; sanitised by the UI layer. */
+  text: z.string().max(12),
+  styleId: z.string(),
+});
+export type PlateSetup = z.infer<typeof plateSetupSchema>;
+
 export const cameraStateSchema = z.object({
   position: vec3Schema,
   target: vec3Schema,
@@ -428,6 +452,8 @@ export const buildSchema = z.object({
     rear: axleSetupSchema,
   }),
   stance: stanceSchema,
+  /** Defaulted so builds saved before this field existed keep loading. */
+  plateSetup: plateSetupSchema.default({ text: 'NOVA 70', styleId: 'classic-black' }),
   annotations: z.array(annotationSchema),
   fabricationRecords: z.record(z.string(), fabricationRecordSchema),
   cameraState: cameraStateSchema.nullable(),

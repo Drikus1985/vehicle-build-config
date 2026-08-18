@@ -3,6 +3,19 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Custom numberplate (2026-08-18)
+
+- Generic `plateMounts` manifest metadata (position/size/rotation measured from the baked
+  `LicPlate` meshes, which are force-hidden) + `plateSetup` on the Build (zod-defaulted so
+  builds saved before the field existed keep loading — covered by a legacy-parse test).
+- Canvas-texture plates (1024px, sRGB) with sanitised text (uppercase, A-Z 0-9 space
+  hyphen, 10 chars) in four generic colourways — deliberately no real jurisdiction's
+  plate design. Front & rear render at the measured 520 x 110 mm mounts; clicks resolve to
+  the "Licence plates" part; removing/hiding/isolating that part controls the plates.
+- Paint tab UI (text input + style buttons), printable summary line, undo/redo coverage.
+- 80/80 unit tests; 5/5 e2e; verified visually front + rear with custom text and zero
+  console errors.
+
 ## UV-mapped asset conversion (2026-08-18)
 
 - Seller's UV package (OBJ/MTL/FBX/MAX + UV template PNG, no glTF) fetched from the user's

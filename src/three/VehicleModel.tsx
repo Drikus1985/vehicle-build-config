@@ -10,6 +10,7 @@ import { newId } from '@/lib/build/defaults';
 import { useUiStore } from '@/state/uiStore';
 import { addAnnotation } from '@/state/buildActions';
 import { Wheels } from './Wheels';
+import { GeneratedPlates } from './PlateMeshes';
 
 const ACCENT = new THREE.Color('#f59e0b');
 const HOVER = new THREE.Color('#f5cf8b');
@@ -201,9 +202,19 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
     }
   }, [nodes, build.paint, build.glassTint, installedByPart]);
 
+  // Baked plate meshes are replaced by generated plates (PlateMeshes).
+  const replacedPlateNodes = useMemo(
+    () => new Set(manifest.plateMounts.flatMap((m) => m.hideNodeNames)),
+    [manifest],
+  );
+
   // --- Visibility (install/remove, variants, isolate) -----------------------
   useEffect(() => {
     for (const [nodeName, entry] of nodes) {
+      if (replacedPlateNodes.has(nodeName)) {
+        entry.object.visible = false;
+        continue;
+      }
       let visible = true;
       if (entry.componentId) {
         const part = getPart(entry.componentId);
@@ -222,7 +233,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
       }
       entry.object.visible = visible;
     }
-  }, [nodes, installedByPart, isolatedComponentId]);
+  }, [nodes, installedByPart, isolatedComponentId, replacedPlateNodes]);
 
   // --- Highlights, fabrication overlay, ghost mode --------------------------
   useEffect(() => {
@@ -391,6 +402,7 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
         }}
       >
         <primitive object={root} />
+        <GeneratedPlates manifest={manifest} build={build} />
         {build.annotations.map((ann, index) => (
           <Html
             key={ann.id}

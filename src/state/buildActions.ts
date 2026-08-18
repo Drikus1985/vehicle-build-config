@@ -10,8 +10,10 @@ import type {
   FabricationRecord,
   FabricationStatus,
   PaintZoneSetting,
+  PlateSetup,
   Stance,
 } from '@/lib/schemas';
+import { sanitizePlateText } from '@/lib/plates';
 import { useBuildStore } from './buildStore';
 
 const update = (...args: Parameters<ReturnType<typeof useBuildStore.getState>['update']>) =>
@@ -208,6 +210,18 @@ export function setFabricationStatus(componentId: string, status: FabricationSta
 export function removeFabricationRecord(componentId: string): void {
   update((draft) => {
     delete draft.fabricationRecords[componentId];
+  });
+}
+
+// --- Numberplates -----------------------------------------------------------
+
+export function setPlateSetup(patch: Partial<PlateSetup>): void {
+  update((draft) => {
+    draft.plateSetup = {
+      ...draft.plateSetup,
+      ...patch,
+      ...(patch.text !== undefined ? { text: sanitizePlateText(patch.text) } : {}),
+    };
   });
 }
 

@@ -1,6 +1,7 @@
 import { getManifestForVehicle, getPart, getVariant, getVehicle } from '@/lib/catalog';
 import { checkAxleFitment, computeTyreSpec } from '@/lib/fitment/tyres';
 import { statusMeta } from '@/lib/titanforge';
+import { getPlateStyle } from '@/lib/plates';
 import type { Build } from '@/lib/schemas';
 
 function esc(s: string): string {
@@ -94,6 +95,13 @@ ${removedRows ? `<p><strong>Removed:</strong></p><ul>${removedRows}</ul>` : ''}
 Camber F/R: ${build.stance.camberFrontDeg}° / ${build.stance.camberRearDeg}° ·
 Track F/R: +${build.stance.trackWidthFrontMm} / +${build.stance.trackWidthRearMm} mm</p>
 
+${
+  manifest && manifest.plateMounts.length > 0
+    ? `<h2>Numberplate</h2>
+<p>"${esc(build.plateSetup.text)}" — ${esc(getPlateStyle(build.plateSetup.styleId).label)} (decorative display plate)</p>
+`
+    : ''
+}
 <h2>Fitment warnings (indicative)</h2>
 ${warningItems ? `<ul>${warningItems}</ul>` : '<p class="muted">None at current settings.</p>'}
 

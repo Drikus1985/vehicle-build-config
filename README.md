@@ -40,6 +40,10 @@ Nova-specific configurator features:
 - **Imported wheels**: import a wheel GLB/STL via the Import dialog and tick "wheel model";
   it then appears under Wheels & Tyres and is auto-oriented and scaled to the configured
   overall tyre diameter (a display fit — not an engineering fit).
+- **Custom numberplate**: the Paint tab has a Numberplate section — your text (up to 10
+  characters) rendered onto generated front & rear plates in four generic colourways,
+  replacing the model's baked plates. Purely decorative; remove via the "Licence plates"
+  part. Driven by `plateMounts` in the asset manifest, so any vehicle can opt in.
 
 ### UV-mapped variant
 

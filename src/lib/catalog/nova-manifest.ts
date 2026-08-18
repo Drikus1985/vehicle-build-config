@@ -650,6 +650,28 @@ export const NOVA_MANIFEST: AssetManifest = {
       wellClearanceWidthM: 0.3,
     },
   ],
+  // Generated numberplates replace the baked LicPlate meshes (positions and
+  // 520 x 110 mm size measured from the asset).
+  plateMounts: [
+    {
+      id: 'front',
+      componentId: 'part-nova-plates',
+      position: [0, 0.4203, 2.452],
+      rotationDeg: [0, 0, 0],
+      widthM: 0.52,
+      heightM: 0.11,
+      hideNodeNames: ['LicPlate01'],
+    },
+    {
+      id: 'rear',
+      componentId: 'part-nova-plates',
+      position: [0, 0.5679, -2.474],
+      rotationDeg: [0, 180, 0],
+      widthM: 0.52,
+      heightM: 0.11,
+      hideNodeNames: ['LicPlate02'],
+    },
+  ],
   cameraTargets: {
     defaultTarget: [0, 0.65, 0],
     defaultPosition: [4.4, 1.7, 5.2],
