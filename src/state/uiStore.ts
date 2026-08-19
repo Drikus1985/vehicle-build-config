@@ -19,6 +19,7 @@ export type DialogState =
   | { kind: 'vehicle-change'; targetVehicleId: string }
   | { kind: 'share' }
   | { kind: 'import' }
+  | { kind: 'vehicle-authoring'; assetId: string }
   | { kind: 'snapshot' }
   | { kind: 'builds' }
   | { kind: 'summary' };

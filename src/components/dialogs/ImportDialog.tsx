@@ -35,6 +35,7 @@ const EMPTY_RIGHTS: RightsForm = {
 export function ImportDialog() {
   const toast = useUiStore((s) => s.toast);
   const closeDialog = useUiStore((s) => s.closeDialog);
+  const openDialog = useUiStore((s) => s.openDialog);
   const [stage, setStage] = useState<Stage>({ step: 'pick' });
   const [rights, setRights] = useState<RightsForm>(EMPTY_RIGHTS);
   const [asWheel, setAsWheel] = useState(false);
@@ -299,6 +300,15 @@ export function ImportDialog() {
                   <span className="text-[10px] text-graphite-400">
                     {(a.sizeBytes / 1024 / 1024).toFixed(1)} MB · {a.attribution.licence}
                   </span>
+                  {a.kind === 'gltf' && a.role !== 'wheel' && (
+                    <button
+                      className="btn !py-1"
+                      title="Map this model's nodes to components and zones, making it a fully editable library vehicle"
+                      onClick={() => openDialog({ kind: 'vehicle-authoring', assetId: a.id })}
+                    >
+                      Map to vehicle
+                    </button>
+                  )}
                   <button
                     className="btn-ghost !p-1 text-danger-500"
                     aria-label={`Delete asset ${a.name}`}

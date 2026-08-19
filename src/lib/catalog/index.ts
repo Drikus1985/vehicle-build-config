@@ -11,6 +11,14 @@ export { TF100_PARTS, TF100_VARIANTS } from './tf100-parts';
 export { NOVA_MANIFEST } from './nova-manifest';
 export { NOVA_PARTS, NOVA_VARIANTS } from './nova-parts';
 export { FACTORY_PALETTES, ALL_PALETTE_COLORS } from './palettes';
+export {
+  loadUserCatalog,
+  saveUserVehicle,
+  removeUserVehicle,
+  isUserVehicle,
+  useUserCatalog,
+} from './userCatalog';
+import { getUserBundles } from './userCatalog';
 
 const MANIFESTS: Record<string, AssetManifest> = {
   [TF100_MANIFEST.id]: TF100_MANIFEST,
@@ -20,12 +28,20 @@ const MANIFESTS: Record<string, AssetManifest> = {
 const PARTS: Part[] = [...TF100_PARTS, ...NOVA_PARTS];
 const VARIANTS: PartVariant[] = [...TF100_VARIANTS, ...NOVA_VARIANTS];
 
+/** Seed catalogue + any user-authored vehicles (see userCatalog.ts). */
+export function getAllVehicles(): Vehicle[] {
+  return [...VEHICLES, ...getUserBundles().map((b) => b.vehicle)];
+}
+
 export function getVehicle(id: string): Vehicle | undefined {
-  return VEHICLES.find((v) => v.id === id);
+  return (
+    VEHICLES.find((v) => v.id === id) ?? getUserBundles().find((b) => b.vehicle.id === id)?.vehicle
+  );
 }
 
 export function getManifest(id: string | null | undefined): AssetManifest | undefined {
-  return id ? MANIFESTS[id] : undefined;
+  if (!id) return undefined;
+  return MANIFESTS[id] ?? getUserBundles().find((b) => b.manifest.id === id)?.manifest;
 }
 
 export function getManifestForVehicle(vehicleId: string): AssetManifest | undefined {
@@ -33,7 +49,12 @@ export function getManifestForVehicle(vehicleId: string): AssetManifest | undefi
 }
 
 export function getPart(id: string): Part | undefined {
-  return PARTS.find((p) => p.id === id);
+  return (
+    PARTS.find((p) => p.id === id) ??
+    getUserBundles()
+      .flatMap((b) => b.parts)
+      .find((p) => p.id === id)
+  );
 }
 
 export function getVariant(id: string): PartVariant | undefined {
@@ -46,7 +67,8 @@ export function getVariantsForPart(partId: string): PartVariant[] {
 
 /** All parts applicable to a vehicle (by explicit id, type/style or open compatibility). */
 export function getPartsForVehicle(vehicle: Vehicle): Part[] {
-  return PARTS.filter((p) => {
+  const pool = [...PARTS, ...getUserBundles().flatMap((b) => b.parts)];
+  return pool.filter((p) => {
     const c = p.compatibility;
     if (c.vehicleIds && !c.vehicleIds.includes(vehicle.id)) return false;
     if (c.vehicleTypes && !c.vehicleTypes.includes(vehicle.vehicleType)) return false;

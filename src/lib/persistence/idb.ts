@@ -9,25 +9,38 @@ import type {
   Repositories,
   SavedColor,
   SettingsRepository,
+  UserVehicleBundle,
+  UserVehicleRepository,
 } from './repositories';
 
 interface VbcDB extends DBSchema {
   builds: { key: string; value: Build };
   assets: { key: string; value: ImportedAsset };
   meta: { key: string; value: string | SavedColor[] };
+  userVehicles: { key: string; value: UserVehicleBundle };
 }
 
 const DB_NAME = 'vehicle-build-config';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<VbcDB>> | null = null;
 
 function db(): Promise<IDBPDatabase<VbcDB>> {
   dbPromise ??= openDB<VbcDB>(DB_NAME, DB_VERSION, {
     upgrade(database) {
-      database.createObjectStore('builds', { keyPath: 'id' });
-      database.createObjectStore('assets', { keyPath: 'id' });
-      database.createObjectStore('meta');
+      // Guarded creates so the upgrade works from any prior version.
+      if (!database.objectStoreNames.contains('builds')) {
+        database.createObjectStore('builds', { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains('assets')) {
+        database.createObjectStore('assets', { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains('meta')) {
+        database.createObjectStore('meta');
+      }
+      if (!database.objectStoreNames.contains('userVehicles')) {
+        database.createObjectStore('userVehicles', { keyPath: 'vehicle.id' });
+      }
     },
   });
   return dbPromise;
@@ -107,8 +120,23 @@ class IdbSettingsRepository implements SettingsRepository {
   }
 }
 
+class IdbUserVehicleRepository implements UserVehicleRepository {
+  async list(): Promise<UserVehicleBundle[]> {
+    return (await (await db()).getAll('userVehicles')) ?? [];
+  }
+
+  async save(bundle: UserVehicleBundle): Promise<void> {
+    await (await db()).put('userVehicles', structuredClone(bundle));
+  }
+
+  async remove(vehicleId: string): Promise<void> {
+    await (await db()).delete('userVehicles', vehicleId);
+  }
+}
+
 export const repositories: Repositories = {
   builds: new IdbBuildRepository(),
   assets: new IdbAssetRepository(),
   settings: new IdbSettingsRepository(),
+  userVehicles: new IdbUserVehicleRepository(),
 };

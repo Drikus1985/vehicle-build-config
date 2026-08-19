@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react';
-import { VEHICLES, getManifestForVehicle } from '@/lib/catalog';
+import {
+  VEHICLES,
+  getManifestForVehicle,
+  isUserVehicle,
+  removeUserVehicle,
+  useUserCatalog,
+} from '@/lib/catalog';
 import type { Vehicle } from '@/lib/schemas';
 import { useBuildStore } from '@/state/buildStore';
 import { useUiStore } from '@/state/uiStore';
@@ -29,10 +35,13 @@ function VehicleCard({ vehicle, onSelect }: { vehicle: Vehicle; onSelect: (v: Ve
             {vehicle.bodyStyle} · {vehicle.vehicleType}
           </p>
         </div>
-        <span
-          className={`chip shrink-0 ${hasAsset ? 'border-ok-500/50 text-ok-500' : 'border-graphite-600 text-graphite-400'}`}
-        >
-          {hasAsset ? '3D ready' : 'No asset'}
+        <span className="flex shrink-0 flex-col items-end gap-1">
+          <span
+            className={`chip ${hasAsset ? 'border-ok-500/50 text-ok-500' : 'border-graphite-600 text-graphite-400'}`}
+          >
+            {hasAsset ? '3D ready' : 'No asset'}
+          </span>
+          {isUserVehicle(vehicle.id) && <span className="chip">yours</span>}
         </span>
       </button>
       {expanded && (
@@ -87,6 +96,24 @@ function VehicleCard({ vehicle, onSelect }: { vehicle: Vehicle; onSelect: (v: Ve
                 ? 'Start / switch build'
                 : 'Open metadata (no 3D)'}
           </button>
+          {isUserVehicle(vehicle.id) && (
+            <button
+              className="btn-ghost mt-1 w-full text-danger-500"
+              disabled={isCurrent}
+              title={isCurrent ? 'Close this build before removing the vehicle' : undefined}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Remove "${vehicle.year} ${vehicle.make} ${vehicle.model}" from the library? Saved builds for it will no longer open. The imported asset itself stays in the import library.`,
+                  )
+                ) {
+                  void removeUserVehicle(vehicle.id);
+                }
+              }}
+            >
+              Remove user vehicle
+            </button>
+          )}
         </div>
       )}
     </li>
@@ -106,29 +133,41 @@ export function VehicleLibrary() {
   const openDialog = useUiStore((s) => s.openDialog);
   const toast = useUiStore((s) => s.toast);
 
-  const makes = useMemo(() => [...new Set(VEHICLES.map((v) => v.make))].sort(), []);
-  const bodyStyles = useMemo(() => [...new Set(VEHICLES.map((v) => v.bodyStyle))].sort(), []);
-  const types = useMemo(() => [...new Set(VEHICLES.map((v) => v.vehicleType))].sort(), []);
+  // Seed catalogue plus user-authored vehicles (reactive to additions/removals).
+  const userBundles = useUserCatalog((s) => s.bundles);
+  const vehicles = useMemo(
+    () => [...VEHICLES, ...userBundles.map((b) => b.vehicle)],
+    [userBundles],
+  );
+
+  const makes = useMemo(() => [...new Set(vehicles.map((v) => v.make))].sort(), [vehicles]);
+  const bodyStyles = useMemo(
+    () => [...new Set(vehicles.map((v) => v.bodyStyle))].sort(),
+    [vehicles],
+  );
+  const types = useMemo(() => [...new Set(vehicles.map((v) => v.vehicleType))].sort(), [vehicles]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return VEHICLES.filter((v) => {
-      if (assetOnly && v.assetManifestId === null) return false;
-      if (make !== ALL && v.make !== make) return false;
-      if (bodyStyle !== ALL && v.bodyStyle !== bodyStyle) return false;
-      if (vehicleType !== ALL && v.vehicleType !== vehicleType) return false;
-      if (decade !== ALL) {
-        const d = Number(decade);
-        if (v.year < d || v.year >= d + 10) return false;
-      }
-      if (q) {
-        const hay =
-          `${v.year} ${v.make} ${v.model} ${v.trim ?? ''} ${v.tags.join(' ')}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    }).sort((a, b) => a.year - b.year);
-  }, [query, make, bodyStyle, vehicleType, decade, assetOnly]);
+    return vehicles
+      .filter((v) => {
+        if (assetOnly && v.assetManifestId === null) return false;
+        if (make !== ALL && v.make !== make) return false;
+        if (bodyStyle !== ALL && v.bodyStyle !== bodyStyle) return false;
+        if (vehicleType !== ALL && v.vehicleType !== vehicleType) return false;
+        if (decade !== ALL) {
+          const d = Number(decade);
+          if (v.year < d || v.year >= d + 10) return false;
+        }
+        if (q) {
+          const hay =
+            `${v.year} ${v.make} ${v.model} ${v.trim ?? ''} ${v.tags.join(' ')}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => a.year - b.year);
+  }, [vehicles, query, make, bodyStyle, vehicleType, decade, assetOnly]);
 
   const selectVehicle = (vehicle: Vehicle) => {
     if (build && build.vehicleId !== vehicle.id) {

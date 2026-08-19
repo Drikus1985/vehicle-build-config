@@ -199,10 +199,17 @@ chrome bumper), `procedural-wheel` (parametric wheels), or `gltf` for external a
 - **Import**: PNG/JPEG/WebP reference images, glTF 2.0 (.glb/.gltf) and STL. Files are
   validated by **byte signature**, size caps and structural checks; OBJ/FBX/3MF are rejected
   with a conversion hint (server-side conversion is out of scope). Imported photos are
-  references only, never "converted" to editable 3D. Imported 3D without a manifest loads as a
-  monolithic preview (no per-part editing). Provenance + licence + reuse confirmation are
-  mandatory before an asset enters the library. No scraping or URL extraction of protected
+  references only, never "converted" to editable 3D. Provenance + licence + reuse confirmation
+  are mandatory before an asset enters the library. No scraping or URL extraction of protected
   assets.
+- **Map to vehicle** (manifest authoring): any imported GLB with separately named meshes can
+  be mapped into a **fully editable library vehicle** in-app — the dialog inspects the node
+  tree (descending through wrapper groups), guesses a material zone per node from its name
+  (glass/chrome/rubber/interior/trim/body…, each adjustable, or "keep original"), and
+  generates the manifest, one removable part per node, cameras, dimensions, unit
+  normalisation and grounding from the geometry. User vehicles persist locally, appear in
+  the library with a "yours" chip and a remove action, and honestly list what they can't do
+  (no wheel anchors → no parametric wheels/stance; no stripes/liveries/plates).
 - **Share links**: intentionally not offered — there is no server backend, and a fake link
   would lie. The Share dialog explains the truthful alternative (versioned build-file
   export/import). The repository interfaces in `src/lib/persistence/repositories.ts` are the

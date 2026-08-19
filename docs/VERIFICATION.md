@@ -3,6 +3,29 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Manifest authoring for imported GLBs (2026-08-19)
+
+- "Map to vehicle" on any imported GLB asset: the dialog loads the model, collects
+  mappable nodes at the viewer's granularity (descending through named wrapper groups
+  to leaf named mesh nodes — verified against the Nova UV asset, whose single named
+  root previously collapsed to one node and now yields 145), guesses a zone per node
+  from its name, and builds a full bundle: vehicle metadata, generated manifest
+  (standard zone template, cameras/fitment from the bounding box, unit inference
+  m/cm/mm with fit fallback, grounding via a new manifest `rootOffset`), and one
+  removable part per node. `asset:<id>` source URIs resolve imported blobs to object
+  URLs in the viewer; a deleted backing asset surfaces a truthful error.
+- User vehicles persist in IndexedDB (schema v2, guarded migration), load at boot
+  before build restore, merge into every catalogue lookup, appear in the library with
+  a "yours" chip + remove action, and carry honest known-limitations (derived
+  dimensions; no wheels/stance/stripes/liveries).
+- 112/112 unit tests (zone/category/scale inference incl. cm/mm normalisation and
+  grounding, schema-valid bundles with unique part ids under slug collisions,
+  register→lookup→default-build→remove round trip through the real repositories);
+  7/7 e2e including a full import→map→create→open flow through the real validation
+  dialog; verified visually with the 31 MB Nova UV GLB mapped to 145 parts — body
+  paints independently while glass/chrome/rubber/interior zones hold, model grounded
+  and framed, zero console errors.
+
 ## Split-view variant compare (2026-08-19)
 
 - Compare mode is now a true synchronised split viewport: the left/top pane stays the
@@ -227,8 +250,9 @@ no errors or warnings during load, vehicle selection, painting, mode switches.
 
 - The TF-100 is a stylised primitive-based demo asset; real scanned/modelled vehicles will
   look dramatically better through the same pipeline.
-- Imported GLB/STL assets are library/preview items only; they cannot yet be attached to a
-  build or mapped into components (that requires authoring a manifest).
+- User-mapped vehicles have no wheel anchors, plate mounts or livery data, so parametric
+  wheels/stance, plates, stripes and liveries stay unavailable on them; imported STL assets
+  remain preview/inspection items (no named nodes to map).
 - Fitment warnings are indicative geometry checks, not measured engineering clearances.
 - The e2e error-state test for a corrupt GLB is manual; automated coverage exists for
   validation rejection but not for a mid-stream loader failure.
@@ -236,7 +260,7 @@ no errors or warnings during load, vehicle selection, painting, mode switches.
 
 ## Next highest-value improvements
 
-1. **Manifest authoring flow for imported GLBs** — inspect an imported GLB's node tree in-app
-   and interactively map nodes → components/zones, unlocking full editing for user assets.
-2. **Backend reference implementation** — a small API implementing the repository interfaces
+1. **Backend reference implementation** — a small API implementing the repository interfaces
    (auth + Postgres + object storage) to enable real share links and multi-device sync.
+2. **Wheel-anchor authoring for user vehicles** — click the model to place the four anchors,
+   unlocking parametric wheels/tyres/stance for user-mapped assets.

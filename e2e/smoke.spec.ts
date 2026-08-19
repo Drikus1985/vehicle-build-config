@@ -78,6 +78,38 @@ test.describe('workspace smoke', () => {
     await expect(page.locator('canvas')).toHaveCount(1);
   });
 
+  test('an imported GLB can be mapped into a fully editable vehicle', async ({ page }) => {
+    // Import is available once a build is open.
+    await openDemoVehicle(page);
+    // Import the committed demo GLB through the real validation flow.
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    const chooserPromise = page.waitForEvent('filechooser');
+    await page.getByText('Choose a file…').click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles('public/assets/vehicles/tf100-stepside.glb');
+    await expect(page.getByText(/glTF 2\.0 binary/)).toBeVisible({ timeout: 20_000 });
+    await page.getByPlaceholder('Source / provider name *').fill('Project demo asset');
+    await page.getByPlaceholder('Licence, e.g. CC0, CC-BY-4.0, purchased *').fill('CC0-1.0');
+    await page.getByText('I confirm I have the right to reuse').click();
+    await page.getByRole('button', { name: 'Add to library' }).click();
+
+    // Map it: node tree + zone guesses load, metadata is filled, vehicle created.
+    await page.getByRole('button', { name: 'Map to vehicle' }).click();
+    await expect(page.getByText(/named mesh nodes found/)).toBeVisible({ timeout: 30_000 });
+    await page.getByLabel('Make', { exact: true }).fill('Workshop');
+    await page.getByLabel('Model', { exact: true }).fill('Special');
+    await page.getByRole('button', { name: 'Create vehicle' }).click();
+    await expect(page.getByText(/added to the library — 3D ready/)).toBeVisible();
+
+    // The new vehicle opens as a real, renderable build (via the honest
+    // vehicle-change warning, since a build is already open).
+    await page.getByRole('button', { name: /1965 Workshop Special/ }).click();
+    await page.getByRole('button', { name: 'Start / switch build' }).click();
+    await page.getByRole('button', { name: /Switch (vehicle|and drop)/ }).click();
+    await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('1965 Special build')).toBeVisible();
+  });
+
   test('share dialog is truthful about missing backend', async ({ page }) => {
     await openDemoVehicle(page);
     await page.getByRole('button', { name: 'Share' }).click();

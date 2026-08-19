@@ -19,6 +19,7 @@ import {
   updateStripeUniforms,
 } from './stripesShader';
 import { useLiveryAssetAvailable } from './liveryAsset';
+import { useResolvedAssetUrls } from './assetUrl';
 import { drawLiveryTexture, LIVERY_TEXTURE_SIZE } from './liveryTexture';
 import { liveryHasContent } from '@/lib/livery';
 import { patinaActive } from '@/lib/patina';
@@ -73,7 +74,9 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   const liveryAvailable = useLiveryAssetAvailable(manifest);
   const baseUri =
     liveryAvailable && manifest.liverySource ? manifest.liverySource.uri : manifest.source.uri;
-  const assetUrls = manifest.addonSource ? [baseUri, manifest.addonSource.uri] : [baseUri];
+  const assetUrls = useResolvedAssetUrls(
+    manifest.addonSource ? [baseUri, manifest.addonSource.uri] : [baseUri],
+  );
   // Second arg: locally hosted Draco decoder (no CDN — the app is
   // local-first), used only for assets that actually carry the extension.
   const gltfs = useGLTF(assetUrls, '/draco/');
@@ -459,7 +462,9 @@ export function VehicleModel({ manifest, build, interactive }: VehicleModelProps
   };
 
   return (
-    <group>
+    // Scale + grounding offset: identity for catalogue assets; user-authored
+    // manifests use them to normalise units and sit the model on the ground.
+    <group scale={manifest.scale} position={manifest.rootOffset ?? [0, 0, 0]}>
       <group
         ref={bodyRef}
         position={[0, stancePose.lift, 0]}

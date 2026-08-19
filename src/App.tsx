@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getVehicle } from '@/lib/catalog';
+import { getVehicle, loadUserCatalog } from '@/lib/catalog';
 import { startAutosave } from '@/lib/persistence/autosave';
 import { repositories } from '@/lib/persistence/idb';
 import { restoreBuild, useBuildStore } from '@/state/buildStore';
@@ -26,6 +26,9 @@ export default function App() {
     let cancelled = false;
     void (async () => {
       try {
+        // User-authored vehicles must be registered before the last build is
+        // restored (it may reference one).
+        await loadUserCatalog();
         const currentId = await repositories.builds.getCurrentBuildId();
         if (currentId) {
           const saved = await repositories.builds.get(currentId);

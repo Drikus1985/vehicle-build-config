@@ -240,6 +240,11 @@ export const assetManifestSchema = z.object({
   attribution: attributionSchema,
   /** Multiplier applied so 1 world unit == 1 metre. */
   scale: z.number().positive(),
+  /**
+   * Post-scale translation applied to the whole model (metres). Used by
+   * user-authored vehicles to centre the model and sit it on the ground.
+   */
+  rootOffset: vec3Schema.optional(),
   units: z.enum(['m', 'cm', 'mm', 'in']),
   coordinateSystem: z.enum(['y-up-z-forward', 'y-up-x-forward', 'z-up']),
   supportedFeatures: z.object({

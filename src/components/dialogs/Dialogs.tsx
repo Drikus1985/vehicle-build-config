@@ -4,6 +4,7 @@ import { VehicleChangeDialog } from './VehicleChangeDialog';
 import { ShareDialog } from './ShareDialog';
 import { ImportDialog } from './ImportDialog';
 import { SnapshotDialog } from './SnapshotDialog';
+import { VehicleAuthoringDialog } from './VehicleAuthoringDialog';
 
 export function DialogShell({ title, children }: { title: string; children: ReactNode }) {
   const closeDialog = useUiStore((s) => s.closeDialog);
@@ -50,6 +51,8 @@ export function Dialogs() {
       return <ShareDialog />;
     case 'import':
       return <ImportDialog />;
+    case 'vehicle-authoring':
+      return <VehicleAuthoringDialog assetId={dialog.assetId} />;
     case 'snapshot':
       return <SnapshotDialog />;
     default:

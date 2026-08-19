@@ -48,6 +48,19 @@ export interface AssetRepository {
   remove(id: string): Promise<void>;
 }
 
+/** A user-authored vehicle: metadata + generated manifest + per-node parts. */
+export interface UserVehicleBundle {
+  vehicle: import('@/lib/schemas').Vehicle;
+  manifest: import('@/lib/schemas').AssetManifest;
+  parts: import('@/lib/schemas').Part[];
+}
+
+export interface UserVehicleRepository {
+  list(): Promise<UserVehicleBundle[]>;
+  save(bundle: UserVehicleBundle): Promise<void>;
+  remove(vehicleId: string): Promise<void>;
+}
+
 export interface SavedColor {
   hex: string;
   name: string;
@@ -64,4 +77,5 @@ export interface Repositories {
   builds: BuildRepository;
   assets: AssetRepository;
   settings: SettingsRepository;
+  userVehicles: UserVehicleRepository;
 }
