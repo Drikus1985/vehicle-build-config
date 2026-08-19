@@ -17,6 +17,7 @@
     "test:e2e": "playwright test",
     "generate:demo-vehicle": "node scripts/generate-demo-vehicle.mjs",
     "generate:nova-addons": "node scripts/generate-nova-addons.mjs",
+    "build:demo": "node scripts/build-demo.mjs",
     "compress:nova": "node scripts/compress-glb.mjs public/assets/vehicles/nova-1970.glb && node scripts/compress-glb.mjs public/assets/vehicles/nova-1970-uv.glb"
   },
   "dependencies": {

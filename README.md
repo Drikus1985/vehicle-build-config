@@ -104,6 +104,19 @@ load time) because it powers the livery feature; when absent, the original
 `nova-1970.glb` loads and liveries are truthfully unavailable. The original asset keeps
 slightly nicer glass (KHR transmission), so keep both files around.
 
+## Shareable single-file demo
+
+```
+npm run build:demo     # → dist-demo/workbench-demo.html
+```
+
+Produces one self-contained HTML file (~3 MB): app JS/CSS plus the rights-safe assets
+(CC0 TF-100 GLB, CC0 Nova add-ons, Apache-2.0 Draco decoder) inlined as base64 behind a
+fetch shim. The licensed Nova GLBs are deliberately **not** embedded — the demo shows
+their truthful missing-asset state. Where browser storage is blocked (some sandboxed
+embeds/private modes) the app now falls back to in-memory storage and says so;
+file-download exports don't work in sandboxed viewers.
+
 ## Setup
 
 ```bash

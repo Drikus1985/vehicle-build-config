@@ -23,25 +23,80 @@ interface VbcDB extends DBSchema {
 const DB_NAME = 'vehicle-build-config';
 const DB_VERSION = 2;
 
+let volatileStorage = false;
+
+/** True when IndexedDB was unavailable and the session runs on volatile,
+ *  in-memory storage (sandboxed embeds, some private-browsing modes). */
+export function isStorageVolatile(): boolean {
+  return volatileStorage;
+}
+
+const KEY_PATHS: Record<string, string> = {
+  builds: 'id',
+  assets: 'id',
+  userVehicles: 'vehicle.id',
+};
+
+/**
+ * Minimal in-memory stand-in for the four IDB operations the repositories
+ * use, so the app still works (without persistence) where IndexedDB is
+ * blocked. The volatile flag lets the UI say so honestly.
+ */
+function createMemoryDB(): IDBPDatabase<VbcDB> {
+  const stores = new Map<string, Map<unknown, unknown>>();
+  const store = (name: string) => {
+    if (!stores.has(name)) stores.set(name, new Map());
+    return stores.get(name)!;
+  };
+  const keyOf = (name: string, value: unknown, key?: unknown): unknown => {
+    if (key !== undefined) return key;
+    const path = KEY_PATHS[name];
+    let v: unknown = value;
+    for (const part of path?.split('.') ?? []) v = (v as Record<string, unknown>)[part];
+    return v;
+  };
+  const memory = {
+    get: (name: string, key: unknown) => Promise.resolve(store(name).get(key)),
+    getAll: (name: string) => Promise.resolve([...store(name).values()]),
+    put: (name: string, value: unknown, key?: unknown) => {
+      store(name).set(keyOf(name, value, key), value);
+      return Promise.resolve(keyOf(name, value, key));
+    },
+    delete: (name: string, key: unknown) => {
+      store(name).delete(key);
+      return Promise.resolve();
+    },
+  };
+  return memory as unknown as IDBPDatabase<VbcDB>;
+}
+
 let dbPromise: Promise<IDBPDatabase<VbcDB>> | null = null;
 
 function db(): Promise<IDBPDatabase<VbcDB>> {
-  dbPromise ??= openDB<VbcDB>(DB_NAME, DB_VERSION, {
-    upgrade(database) {
-      // Guarded creates so the upgrade works from any prior version.
-      if (!database.objectStoreNames.contains('builds')) {
-        database.createObjectStore('builds', { keyPath: 'id' });
-      }
-      if (!database.objectStoreNames.contains('assets')) {
-        database.createObjectStore('assets', { keyPath: 'id' });
-      }
-      if (!database.objectStoreNames.contains('meta')) {
-        database.createObjectStore('meta');
-      }
-      if (!database.objectStoreNames.contains('userVehicles')) {
-        database.createObjectStore('userVehicles', { keyPath: 'vehicle.id' });
-      }
-    },
+  dbPromise ??= (
+    typeof indexedDB === 'undefined'
+      ? Promise.reject(new Error('IndexedDB unavailable'))
+      : openDB<VbcDB>(DB_NAME, DB_VERSION, {
+          upgrade(database) {
+            // Guarded creates so the upgrade works from any prior version.
+            if (!database.objectStoreNames.contains('builds')) {
+              database.createObjectStore('builds', { keyPath: 'id' });
+            }
+            if (!database.objectStoreNames.contains('assets')) {
+              database.createObjectStore('assets', { keyPath: 'id' });
+            }
+            if (!database.objectStoreNames.contains('meta')) {
+              database.createObjectStore('meta');
+            }
+            if (!database.objectStoreNames.contains('userVehicles')) {
+              database.createObjectStore('userVehicles', { keyPath: 'vehicle.id' });
+            }
+          },
+        })
+  ).catch(() => {
+    volatileStorage = true;
+    console.warn('IndexedDB unavailable — falling back to in-memory storage for this session.');
+    return createMemoryDB();
   });
   return dbPromise;
 }

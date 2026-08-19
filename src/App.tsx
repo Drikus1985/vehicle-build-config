@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getVehicle, loadUserCatalog } from '@/lib/catalog';
 import { startAutosave } from '@/lib/persistence/autosave';
-import { repositories } from '@/lib/persistence/idb';
+import { isStorageVolatile, repositories } from '@/lib/persistence/idb';
 import { restoreBuild, useBuildStore } from '@/state/buildStore';
 import { useUiStore } from '@/state/uiStore';
 import { TopBar } from '@/components/TopBar';
@@ -44,6 +44,14 @@ export default function App() {
         if (!cancelled) {
           setBooted(true);
           stop = startAutosave();
+          if (isStorageVolatile()) {
+            useUiStore
+              .getState()
+              .toast(
+                'warning',
+                'Browser storage is unavailable here — builds and imports will not survive a reload.',
+              );
+          }
         }
       }
     })();

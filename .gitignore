@@ -13,3 +13,4 @@ test-results/
 # Place locally; see README "Adding a vehicle" / Nova notes.
 public/assets/vehicles/nova-1970.glb
 public/assets/vehicles/nova-1970-uv.glb
+dist-demo/

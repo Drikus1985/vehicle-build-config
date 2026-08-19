@@ -3,6 +3,22 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Single-file demo build + storage fallback (2026-08-19)
+
+- `npm run build:demo` emits `dist-demo/workbench-demo.html` (2.9 MB): the whole app in
+  one file — single-chunk Vite build (inlineDynamicImports), CSS/JS inlined, rights-safe
+  assets (TF-100 GLB, Nova add-ons, Draco decoder) embedded as base64 behind a fetch
+  shim. Licensed Nova GLBs are excluded by design; requests for them 404 into the
+  truthful missing-asset state (verified).
+- New graceful degradation (app-wide, not demo-only): when IndexedDB is unavailable
+  (sandboxed embeds, some private-browsing modes) the repositories fall back to a
+  volatile in-memory store and the app warns "builds won't survive a reload" at boot.
+- Verified by serving ONLY the single file (every other path 404) and driving it with
+  Playwright: TF-100 loads, paints, camera presets work; with `indexedDB` deleted the
+  app still boots, edits work, the warning toast shows; zero unexpected console errors.
+  112/112 unit tests and 7/7 e2e stay green after the fallback change. Known demo
+  limitation: file-download exports are inert inside sandboxed artifact viewers.
+
 ## Manifest authoring for imported GLBs (2026-08-19)
 
 - "Map to vehicle" on any imported GLB asset: the dialog loads the model, collects
