@@ -14,11 +14,19 @@
  * served as-is since browsers synthesise the skeleton.
  */
 import { execSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
 const outDir = resolve(root, 'dist-demo');
+
+/**
+ * DEMO_INCLUDE_LICENSED=1 additionally embeds the licensed Nova GLBs for a
+ * PRIVATE, local-only file (open by double-clicking; do not publish, host or
+ * share it — the Standard License forbids redistributing the model files, and
+ * embedded assets are trivially extractable from the HTML).
+ */
+const includeLicensed = process.env.DEMO_INCLUDE_LICENSED === '1';
 
 console.log('Building single-file bundle…');
 execSync('npx vite build --outDir dist-demo', {
@@ -45,12 +53,21 @@ const EMBED = [
   'draco/draco_wasm_wrapper.js',
   'draco/draco_decoder.js',
 ];
+// In the shareable build, licensed assets are absent by design and 404 into
+// the truthful missing-asset UI.
+const LICENSED = ['assets/vehicles/nova-1970.glb', 'assets/vehicles/nova-1970-uv.glb'];
+if (includeLicensed) {
+  for (const path of LICENSED) {
+    if (!existsSync(resolve(root, 'public', path))) {
+      throw new Error(`DEMO_INCLUDE_LICENSED=1 but ${path} is not installed locally`);
+    }
+  }
+  EMBED.push(...LICENSED);
+}
 const embedded = Object.fromEntries(
   EMBED.map((path) => [path, readFileSync(resolve(root, 'public', path)).toString('base64')]),
 );
-
-// Licensed assets: absent by design → truthful missing-asset UI.
-const BLOCKED = ['assets/vehicles/nova-1970.glb', 'assets/vehicles/nova-1970-uv.glb'];
+const BLOCKED = includeLicensed ? [] : LICENSED;
 
 const shim = `
 // Fetch shim: serve the embedded rights-safe assets; 404 the licensed ones.
@@ -98,6 +115,14 @@ const html = `<meta charset="utf-8" />
 `;
 
 mkdirSync(outDir, { recursive: true });
-const outFile = resolve(outDir, 'workbench-demo.html');
+const outFile = resolve(
+  outDir,
+  includeLicensed ? 'workbench-demo-local-licensed.html' : 'workbench-demo.html',
+);
 writeFileSync(outFile, html);
 console.log(`${outFile}: ${(html.length / 1024 / 1024).toFixed(1)} MB single file`);
+if (includeLicensed) {
+  console.log(
+    'WARNING: this file embeds licensed model files — keep it private; do not publish, host or share it.',
+  );
+}
