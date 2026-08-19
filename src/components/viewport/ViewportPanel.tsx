@@ -1,5 +1,8 @@
-import { Component, lazy, Suspense, useRef, useState, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { getManifestForVehicle, getVehicle } from '@/lib/catalog';
+import { repositories } from '@/lib/persistence/idb';
+import type { BuildSummary } from '@/lib/persistence/repositories';
+import type { Build } from '@/lib/schemas';
 import { useBuildStore } from '@/state/buildStore';
 import { useUiStore, type BackgroundId, type EnvironmentId } from '@/state/uiStore';
 import { getViewportApi } from '@/three/viewportApi';
@@ -7,6 +10,9 @@ import { getViewportApi } from '@/three/viewportApi';
 // Heavy three.js code loads only when a vehicle with an asset is opened.
 const ViewportScene = lazy(() =>
   import('@/three/ViewportScene').then((m) => ({ default: m.ViewportScene })),
+);
+const CompareViewportScene = lazy(() =>
+  import('@/three/ViewportScene').then((m) => ({ default: m.CompareViewportScene })),
 );
 const LoadingOverlay = lazy(() => import('./LoadingOverlay'));
 
@@ -65,8 +71,12 @@ const CAMERA_PRESETS: { id: string; label: string }[] = [
 
 function ViewportToolbar({
   containerRef,
+  currentBuildId,
+  savedBuilds,
 }: {
   containerRef: React.RefObject<HTMLDivElement | null>;
+  currentBuildId: string | null;
+  savedBuilds: BuildSummary[];
 }) {
   const ui = useUiStore();
   const mode = ui.mode;
@@ -206,20 +216,26 @@ function ViewportToolbar({
         )}
       </div>
 
-      {/* Compare A/B toggle */}
+      {/* Compare B-side picker (cameras stay synchronised across the split) */}
       {mode === 'compare' && (
-        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-graphite-700/50 bg-graphite-950/80 p-1 backdrop-blur">
-          <span className="px-2 text-[11px] text-graphite-400">Compare:</span>
-          {(['current', 'stock'] as const).map((side) => (
-            <button
-              key={side}
-              className={`btn !py-1 ${ui.compareShowing === side ? 'btn-on' : ''}`}
-              aria-pressed={ui.compareShowing === side}
-              onClick={() => ui.setCompareShowing(side)}
+        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-graphite-700/50 bg-graphite-950/80 p-1.5 backdrop-blur">
+          <label className="flex items-center gap-2 text-[11px] text-graphite-400">
+            Compare against
+            <select
+              className="input-base !w-auto !py-1 text-xs"
+              value={ui.compareBuildId ?? ''}
+              onChange={(e) => ui.setCompareBuildId(e.target.value || null)}
             >
-              {side === 'current' ? 'This build' : 'Factory stock'}
-            </button>
-          ))}
+              <option value="">Factory stock</option>
+              {savedBuilds
+                .filter((b) => b.id !== currentBuildId)
+                .map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+            </select>
+          </label>
         </div>
       )}
 
@@ -242,13 +258,69 @@ function ViewportToolbar({
   );
 }
 
+/** The B pane of split-view compare — resolves its own vehicle + manifest. */
+function ComparePane({ build, label }: { build: Build | null; label: string }) {
+  const vehicle = build ? getVehicle(build.vehicleId) : undefined;
+  const manifest = vehicle ? getManifestForVehicle(vehicle.id) : undefined;
+  return (
+    <div className="relative min-h-0">
+      {build && manifest ? (
+        <Suspense fallback={null}>
+          <CompareViewportScene manifest={manifest} build={build} />
+        </Suspense>
+      ) : (
+        <div className="flex h-full items-center justify-center p-6 text-center text-xs text-graphite-400">
+          {build
+            ? 'This build’s vehicle has no 3D asset — it cannot be shown here.'
+            : 'Loading the comparison build…'}
+        </div>
+      )}
+      {/* Bottom-right keeps clear of the centred camera bar and view controls. */}
+      <span className="absolute bottom-3 right-3 z-10 rounded border border-graphite-700/50 bg-graphite-950/80 px-2 py-0.5 text-[11px] text-ivory-200 backdrop-blur">
+        B · {label}
+      </span>
+    </div>
+  );
+}
+
 export function ViewportPanel() {
   const build = useBuildStore((s) => s.build);
   const stockBuild = useBuildStore((s) => s.stockBuild);
-  const compareShowing = useUiStore((s) => s.compareShowing);
+  const compareBuildId = useUiStore((s) => s.compareBuildId);
   const mode = useUiStore((s) => s.mode);
   const containerRef = useRef<HTMLDivElement>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [savedBuilds, setSavedBuilds] = useState<BuildSummary[]>([]);
+  const [loadedCompareBuild, setLoadedCompareBuild] = useState<Build | null>(null);
+
+  // Saved builds feed the compare picker; refresh on entering compare mode.
+  useEffect(() => {
+    if (mode !== 'compare') return;
+    void repositories.builds
+      .list()
+      .then(setSavedBuilds)
+      .catch(() => setSavedBuilds([]));
+  }, [mode]);
+
+  // Load the picked B-side build (null id = factory stock, nothing to load).
+  useEffect(() => {
+    if (mode !== 'compare' || !compareBuildId) {
+      setLoadedCompareBuild(null);
+      return;
+    }
+    let live = true;
+    void repositories.builds
+      .get(compareBuildId)
+      .then((b) => {
+        if (live) setLoadedCompareBuild(b);
+      })
+      .catch(() => {
+        if (live) setLoadedCompareBuild(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [mode, compareBuildId]);
 
   const vehicle = build ? getVehicle(build.vehicleId) : undefined;
   const manifest = vehicle ? getManifestForVehicle(vehicle.id) : undefined;
@@ -291,15 +363,36 @@ export function ViewportPanel() {
       </div>
     );
   } else {
-    const displayed =
-      mode === 'compare' && compareShowing === 'stock' && stockBuild ? stockBuild : build;
+    const primary = (
+      <Suspense fallback={null}>
+        <ViewportScene vehicle={vehicle} manifest={manifest} build={build} />
+        <LoadingOverlay />
+      </Suspense>
+    );
+    const compareBuild = compareBuildId ? loadedCompareBuild : stockBuild;
+    const compareLabel = compareBuildId
+      ? (loadedCompareBuild?.name ?? 'Loading…')
+      : 'Factory stock';
     content = (
       <ViewerErrorBoundary key={retryKey} onRetry={() => setRetryKey((k) => k + 1)}>
-        <Suspense fallback={null}>
-          <ViewportScene vehicle={vehicle} manifest={manifest} build={displayed} />
-          <LoadingOverlay />
-        </Suspense>
-        <ViewportToolbar containerRef={containerRef} />
+        {mode === 'compare' ? (
+          <div className="grid h-full grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1">
+            <div className="relative min-h-0 border-graphite-700/60 max-md:border-b md:border-r">
+              {primary}
+              <span className="absolute left-3 top-14 z-10 rounded border border-graphite-700/50 bg-graphite-950/80 px-2 py-0.5 text-[11px] text-ivory-200 backdrop-blur md:top-3">
+                A · {build.name}
+              </span>
+            </div>
+            <ComparePane build={compareBuild} label={compareLabel} />
+          </div>
+        ) : (
+          primary
+        )}
+        <ViewportToolbar
+          containerRef={containerRef}
+          currentBuildId={build.id}
+          savedBuilds={savedBuilds}
+        />
       </ViewerErrorBoundary>
     );
   }

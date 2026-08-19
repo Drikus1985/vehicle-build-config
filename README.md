@@ -216,6 +216,10 @@ chrome bumper), `procedural-wheel` (parametric wheels), or `gltf` for external a
   bounds and are labelled *indicative* everywhere they appear.
 - **Persistence**: local-first IndexedDB with debounced autosave (visible status), multiple
   named builds/variants, exact restore after refresh, and versioned JSON export/import.
+- **Compare mode**: a true split view — the interactive pane shows the current build, the
+  second pane shows factory stock or **any saved build/variant** (picker at the bottom),
+  with cameras synchronised every frame across both panes. Duplicate a build from the
+  Build tab, restyle it, then compare the two side by side.
 - **Accessibility/perf**: reduced-motion support (system preference + manual toggle, disables
   turntable/camera animation and switches to on-demand rendering), keyboard access with
   visible focus, labelled controls, per-node material disposal, lazy-loaded 3D code, and a

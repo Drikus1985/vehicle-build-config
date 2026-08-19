@@ -61,6 +61,23 @@ test.describe('workspace smoke', () => {
     await expect(page.getByText(/No Titanforge records yet/)).toBeVisible();
   });
 
+  test('compare mode renders a synchronised split view against stock', async ({ page }) => {
+    await openDemoVehicle(page);
+    // Make the working build visibly different from stock first.
+    await page.getByRole('tab', { name: 'Paint' }).click();
+    await page.getByRole('button', { name: '60s: Rally Red' }).click();
+    await page.getByRole('button', { name: 'Compare' }).click();
+    // Two canvases (primary + follower), labelled panes, and the B-side picker.
+    await expect(page.locator('canvas')).toHaveCount(2, { timeout: 20_000 });
+    await expect(page.getByText(/^A · /)).toBeVisible();
+    await expect(page.getByText('B · Factory stock')).toBeVisible();
+    const picker = page.getByLabel('Compare against');
+    await expect(picker).toHaveValue('');
+    // Leaving compare returns to a single viewport.
+    await page.getByRole('button', { name: 'Design' }).click();
+    await expect(page.locator('canvas')).toHaveCount(1);
+  });
+
   test('share dialog is truthful about missing backend', async ({ page }) => {
     await openDemoVehicle(page);
     await page.getByRole('button', { name: 'Share' }).click();

@@ -3,6 +3,26 @@
 Date: 2026-08-09 (initial) / 2026-08-15 (Nova integration) · Environment: Linux, Node 22.22,
 npm 10.9, Chromium (pre-provisioned) with SwiftShader WebGL.
 
+## Split-view variant compare (2026-08-19)
+
+- Compare mode is now a true synchronised split viewport: the left/top pane stays the
+  interactive current build; the right/bottom pane renders factory stock or any saved
+  build/variant chosen in the "Compare against" picker. The follower pane has no
+  controls of its own — it copies the primary camera's pose every frame (each pane
+  keeps its own aspect) and listens for camera-change notifications so the sync also
+  works under on-demand/reduced-motion rendering. Panes stack vertically on narrow
+  screens.
+- Scene chrome (environment map, background/fog, lights, shadows, grid) was factored
+  into a shared rig used by both panes, so Scene settings apply to both sides. Saved
+  builds load through the zod-validated repository path, so variants saved before
+  newer build fields existed compare correctly. A B-side vehicle without a 3D asset
+  shows a truthful placeholder.
+- 106/106 unit tests (compare state resets on mode change; stock reference stays
+  pristine while the working build changes); 6/6 e2e including a new split-view test
+  (two canvases, pane labels, picker, clean exit back to one viewport); verified
+  visually with a duplicated Nova variant (blue vs red) in ¾ and side views — framing
+  identical across panes, zero console errors.
+
 ## Draco compression (2026-08-18)
 
 - `scripts/compress-glb.mjs` (gltf-transform + draco3dgltf, ALL_EXTENSIONS registered
@@ -207,8 +227,6 @@ no errors or warnings during load, vehicle selection, painting, mode switches.
 
 - The TF-100 is a stylised primitive-based demo asset; real scanned/modelled vehicles will
   look dramatically better through the same pipeline.
-- Compare mode is a synchronised A/B toggle (current vs factory stock), not a split view, and
-  compares against stock rather than another saved variant.
 - Imported GLB/STL assets are library/preview items only; they cannot yet be attached to a
   build or mapped into components (that requires authoring a manifest).
 - Fitment warnings are indicative geometry checks, not measured engineering clearances.
@@ -216,11 +234,9 @@ no errors or warnings during load, vehicle selection, painting, mode switches.
   validation rejection but not for a mid-stream loader failure.
 - No server backend: single-browser persistence, no share links (by design, stated in-app).
 
-## Next three highest-value improvements
+## Next highest-value improvements
 
-1. **Variant-vs-variant compare and split view** — extend Compare mode to pick any saved
-   build/variant for the B side and render a true synchronised split viewport.
-2. **Manifest authoring flow for imported GLBs** — inspect an imported GLB's node tree in-app
+1. **Manifest authoring flow for imported GLBs** — inspect an imported GLB's node tree in-app
    and interactively map nodes → components/zones, unlocking full editing for user assets.
-3. **Backend reference implementation** — a small API implementing the repository interfaces
+2. **Backend reference implementation** — a small API implementing the repository interfaces
    (auth + Postgres + object storage) to enable real share links and multi-device sync.

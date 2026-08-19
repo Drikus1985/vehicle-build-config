@@ -41,8 +41,8 @@ export interface UiState {
   showGrid: boolean;
   reducedMotion: boolean;
   cameraPresetRequest: { presetId: string; nonce: number } | null;
-  /** Compare mode: which side of the A/B toggle is showing. */
-  compareShowing: 'current' | 'stock';
+  /** Compare mode: saved build id shown in the B pane (null = factory stock). */
+  compareBuildId: string | null;
   fabFilter: FabFilter;
   /** When true, next viewport click places an annotation hotspot. */
   placingAnnotation: boolean;
@@ -67,7 +67,7 @@ export interface UiState {
   setShowGrid: (on: boolean) => void;
   setReducedMotion: (on: boolean) => void;
   requestCameraPreset: (presetId: string) => void;
-  setCompareShowing: (side: 'current' | 'stock') => void;
+  setCompareBuildId: (id: string | null) => void;
   setFabFilter: (f: FabFilter) => void;
   setPlacingAnnotation: (on: boolean) => void;
   setViewerStatus: (s: UiState['viewerStatus']) => void;
@@ -98,7 +98,7 @@ export const useUiStore = create<UiState>((set, get) => ({
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : false,
   cameraPresetRequest: null,
-  compareShowing: 'current',
+  compareBuildId: null,
   fabFilter: 'all',
   placingAnnotation: false,
   viewerStatus: { state: 'empty' },
@@ -111,8 +111,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   setMode: (mode) =>
     set({
       mode,
-      // Entering compare always starts on the current build side.
-      compareShowing: 'current',
+      // Entering compare always starts against the factory-stock reference.
+      compareBuildId: null,
       activeTab: mode === 'fabrication' ? 'titanforge' : get().activeTab,
     }),
   setActiveTab: (activeTab) => set({ activeTab }),
@@ -129,7 +129,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   setReducedMotion: (reducedMotion) => set({ reducedMotion }),
   requestCameraPreset: (presetId) =>
     set({ cameraPresetRequest: { presetId, nonce: Date.now() + Math.random() } }),
-  setCompareShowing: (compareShowing) => set({ compareShowing }),
+  setCompareBuildId: (compareBuildId) => set({ compareBuildId }),
   setFabFilter: (fabFilter) => set({ fabFilter }),
   setPlacingAnnotation: (placingAnnotation) => set({ placingAnnotation }),
   setViewerStatus: (viewerStatus) => set({ viewerStatus }),
